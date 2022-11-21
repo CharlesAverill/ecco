@@ -1,0 +1,71 @@
+#! /bin/bash
+
+function dbuild() {
+	docker build -t ecco .
+}
+
+function drun() {
+	docker run ecco
+}
+
+function run() {
+    poetry run ecco $@
+}
+
+function install() {
+    pip install .
+}
+
+function lint() {
+    poetry run mypy .
+}
+
+function format() {
+    poetry run black ecco/*
+    poetry run flake8 --ignore=E501,W503 $(find ecco -name "*.py")
+}
+
+case $1 in 
+    dbuild)
+        dbuild
+    ;;
+
+    drun)
+        drun
+    ;;
+
+    dbuildrun)
+        dbuild
+        drun
+    ;;
+
+    run)
+        run ${@:2}
+    ;;
+
+    install)
+        install
+    ;;
+
+    lint)
+        lint
+    ;;
+
+    format)
+        format
+    ;;
+
+    formatlint)
+        format
+        lint
+    ;;
+
+    all)
+        format
+        lint
+        run ${@:2}
+    ;;
+
+    *)
+        echo "Usage: scripts [dbuild|drun|dbuildrun|run|install] [PASSED ARGUMENTS]"
+esac

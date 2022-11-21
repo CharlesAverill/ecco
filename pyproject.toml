@@ -1,13 +1,18 @@
 [tool.poetry]
 name = "ecco"
 version = "0.1.0"
-description = "An `Educational C COmpiler` written in Python"
+description = "An Educational C COmpiler written in Python"
 authors = ["Charles Averill <charlesaverill20@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
 
+[tool.poetry.dev-dependencies]
+black = "^22.10.0"
+mypy = "^0.991"
+flake8 = "^5.0.4"
+types-setuptools = "^65.6.0.0"
 
 [build-system]
 requires = ["poetry-core"]

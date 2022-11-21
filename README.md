@@ -10,6 +10,7 @@ A Docker image is provided for non-Linux users, although usage of Linux to proce
     git clone https://github.com/CharlesAverill/ecco.git
     cd ecco
     ```
+### With Docker
 
 2. Install Docker:
     - [Windows](https://docs.docker.com/docker-for-windows/install/)
@@ -18,16 +19,28 @@ A Docker image is provided for non-Linux users, although usage of Linux to proce
 
 3. Build the base image:
     ```bash
-    make dbuild
+    ./scripts dbuild
+    ```
+
+### Without Docker
+
+2. Install [poetry](https://python-poetry.org/)
+    ```bash
+    python -m pip install poetry
+    ```
+
+3. Install project dependencies
+    ```bash
+    poetry install
     ```
 
 ## Development Usage
 
-The [Makefile](./Makefile) contains commands to run the `ecco` compiler inside and outside of the Docker image.
+The [scripts](./scripts) file contains commands to run the `ecco` compiler inside and outside of the Docker image.
 
-- `make dbuild` - Build the Docker image
-- `make drun` - Run the compiler within the Docker image built with `make dbuild`
-- `make dbuildrun` - Build and run the Docker image and compiler
-- `make run` - Runs the compiler with [poetry](https://python-poetry.org/)
-- `make install` - Installs your compiler with the default `pip` 
+- `./scripts dbuild` - Build the Docker image
+- `./scripts drun` - Run the compiler within the Docker image built with `./scripts dbuild`
+- `./scripts dbuildrun` - Build and run the Docker image and compiler
+- `./scripts run` - Runs the compiler with [poetry](https://python-poetry.org/)
+- `./scripts install` - Installs your compiler with the default `pip` 
 

@@ -1,4 +1,4 @@
-FROM python:3-alpine
+FROM python:3.10-alpine
 
 WORKDIR /app/ecco
 RUN pip install poetry
