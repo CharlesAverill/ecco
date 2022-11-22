@@ -10,9 +10,11 @@ ERROR_RED = ANSI_RED + ANSI_BOLD
 ERROR_ORANGE = ANSI_ORANGE + ANSI_BOLD
 ERROR_YELLOW = ANSI_YELLOW + ANSI_BOLD
 
+
 def setup_tracebacks() -> None:
     from ..ecco import DEBUG
-    if DEBUG:
+
+    if not DEBUG:
         sys.tracebacklimit = 0
 
 

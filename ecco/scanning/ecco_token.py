@@ -14,6 +14,8 @@ class TokenType(Enum):
     # Literals
     INTEGER_LITERAL = "integer literal"
 
+    EOF = "EOF"
+
     def __str__(self) -> str:
         return self.value
 

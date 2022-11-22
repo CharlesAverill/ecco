@@ -19,6 +19,8 @@ class Scanner:
 
         self.line_number: int = 1
 
+        self.current_token: Token
+
         self.initialized: bool = False
 
     # def __enter__(self: Scanner): -> Scanner:
@@ -40,6 +42,12 @@ class Scanner:
     def __exit__(self, _, __, ___):
         """Closes the program file"""
         self.file.close()
+
+    def open(self):
+        self.__enter__()
+
+    def close(self):
+        self.__exit__(None, None, None)
 
     def next_character(self) -> Annotated[str, 1]:
         """Get the next character from the input stream
@@ -109,23 +117,22 @@ class Scanner:
 
         return int(in_string)
 
-    def scan(self, current_token: Token) -> bool:
+    def scan(self) -> Token:
         """Scan the next token
-
-        Args:
-            current_token (Token): Global Token object to scan data into
 
         Raises:
             EccoSyntaxError: If an unrecognized Token is reached
 
         Returns:
-            bool: True if a Token was read, False if EOF was reached
+            Token: A Token object with the latest scanned data, or None if EOF is reached
         """
         c: Annotated[str, 1] = self.skip()
+        self.current_token = Token()
 
         # Check for EOF
         if c == "":
-            return False
+            self.current_token.type = TokenType.EOF
+            return self.current_token
 
         possible_token_types: List[TokenType] = []
         for token_type in TokenType:
@@ -134,18 +141,18 @@ class Scanner:
 
         if not len(possible_token_types):
             if c.isdigit():
-                current_token.type = TokenType.INTEGER_LITERAL
-                current_token.value = self.scan_integer_literal(c)
+                self.current_token.type = TokenType.INTEGER_LITERAL
+                self.current_token.value = self.scan_integer_literal(c)
             else:
                 raise EccoSyntaxError(f'Uncrecognized token "{c}"')
         else:
             if len(c) == 1:
-                current_token.type = possible_token_types[0]
-                return True
+                self.current_token.type = possible_token_types[0]
+                return self.current_token
             else:
                 pass
 
-        return True
+        return self.current_token
 
     def scan_file(self) -> None:
         """Scans a file and prints out its Tokens"""

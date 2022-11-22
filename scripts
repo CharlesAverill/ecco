@@ -5,7 +5,7 @@ function dbuild() {
 }
 
 function drun() {
-	docker run ecco
+	docker run ecco ${@:2}
 }
 
 function run() {
@@ -36,7 +36,7 @@ case $1 in
 
     dbuildrun)
         dbuild
-        drun
+        drun $@
     ;;
 
     run)
