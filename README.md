@@ -41,6 +41,10 @@ The [scripts](./scripts) file contains commands to run the `ecco` compiler insid
 - `./scripts dbuild` - Build the Docker image
 - `./scripts drun` - Run the compiler within the Docker image built with `./scripts dbuild`
 - `./scripts dbuildrun` - Build and run the Docker image and compiler
-- `./scripts run` - Runs the compiler with [poetry](https://python-poetry.org/)
+- `./scripts run <input-program-filename>` - Runs the compiler with [poetry](https://python-poetry.org/)
 - `./scripts install` - Installs your compiler with the default `pip` 
+- `./scripts lint` - Runs the [mypy](https://pypi.org/mypy) linter on the project to perform static type checking
+- `./scripts format` - Formats the project with [black](https://pypi.org/black) and checks style with [autopep8](https://pypi.org/autopep8)
+- `./scripts formatlint` - Formats and then lints the project
+- `./scripts all <input-program-filename>` - Formats, lints, and runs the compiler with poetry
 
