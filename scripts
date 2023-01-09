@@ -67,5 +67,5 @@ case $1 in
     ;;
 
     *)
-        echo "Usage: scripts [dbuild|drun|dbuildrun|run|install] [PASSED ARGUMENTS]"
+        echo "Usage: scripts [dbuild|drun|dbuildrun|run|install|lint|format|formatlint|all] [PASSED ARGUMENTS]"
 esac
