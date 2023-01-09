@@ -27,42 +27,55 @@ function format() {
 
 case $1 in 
     dbuild)
+        echo "----DBUILD---"
         dbuild
     ;;
 
     drun)
+        echo "-----DRUN----"
         drun
     ;;
 
     dbuildrun)
+        echo "----DBUILD---"
         dbuild
+        echo "-----DRUN----"
         drun $@
     ;;
 
     run)
+        echo "-----RUN-----"
         run ${@:2}
     ;;
 
     install)
+        echo "---INSTALL---"
         install
     ;;
 
     lint)
+        echo "----LINT-----"
         lint
     ;;
 
     format)
+        echo "----FORMAT---"
         format
     ;;
 
     formatlint)
+        echo "----FORMAT---"
         format
+        echo "----LINT-----"
         lint
     ;;
 
     all)
+        echo "----FORMAT---"
         format
+        echo "----LINT-----"
         lint
+        echo "-----RUN-----"
         run ${@:2}
     ;;
 

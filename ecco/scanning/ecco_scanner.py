@@ -156,7 +156,5 @@ class Scanner:
 
     def scan_file(self) -> None:
         """Scans a file and prints out its Tokens"""
-        token: Token = Token()
-
-        while self.scan(token):
-            print(token)
+        while self.scan():
+            print(self.current_token)

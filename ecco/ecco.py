@@ -2,8 +2,10 @@ from .scanning import Scanner, TokenType
 
 from .utils import get_args, setup_tracebacks, EccoFatalException
 
+from .ecco_ast import ASTNode
+
 DEBUG = True
-GLOBAL_SCANNER: Scanner = None
+GLOBAL_SCANNER: Scanner
 
 
 def main():
@@ -20,7 +22,7 @@ def main():
 
     parsed_ast = parse_binary_expression()
 
-    def interpret_ast(root):
+    def interpret_ast(root: ASTNode) -> int:
         left_value: int
         right_value: int
 
