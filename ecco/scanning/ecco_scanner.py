@@ -1,8 +1,8 @@
-from typing import Annotated, TextIO, List
 import os
 
 from ..utils.ecco_logging import EccoFileNotFound, EccoSyntaxError
 from .ecco_token import Token, TokenType
+from typing import Annotated, TextIO, List
 
 
 class Scanner:
@@ -44,9 +44,15 @@ class Scanner:
         self.file.close()
 
     def open(self):
+        """Opens the program file for scanning
+
+        Raises:
+            EccoFileNotFound: If the program file does not exist
+        """
         self.__enter__()
 
     def close(self):
+        """Closes the program file"""
         self.__exit__(None, None, None)
 
     def next_character(self) -> Annotated[str, 1]:
