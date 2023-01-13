@@ -89,6 +89,6 @@ def parse_binary_expression(previous_token_precedence: int) -> ASTNode:
         # Update node_type and check for EOF
         node_type = GLOBAL_SCANNER.current_token.type
         if node_type == TokenType.EOF:
-            return left
+            break
 
     return left
