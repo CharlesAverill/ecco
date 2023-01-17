@@ -1,5 +1,5 @@
-from typing import Annotated, TextIO, List
 import os
+from typing import Annotated, List, TextIO
 
 from ..utils.ecco_logging import EccoFileNotFound, EccoSyntaxError
 from .ecco_token import Token, TokenType

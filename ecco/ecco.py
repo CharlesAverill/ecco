@@ -1,6 +1,5 @@
 from .scanning import Scanner, TokenType
-
-from .utils import get_args, setup_tracebacks, EccoFatalException
+from .utils import EccoFatalException, get_args, setup_tracebacks
 
 DEBUG = True
 GLOBAL_SCANNER: Scanner = None
