@@ -17,7 +17,9 @@ def main():
 
     setup_tracebacks()
     GLOBAL_SCANNER.scan()
-    from .parsing import parse_binary_expression # We do this to avoid "partially initialized" errors with GLOBAL_SCANNER
+    from .parsing import (
+        parse_binary_expression,
+    )  # We do this to avoid "partially initialized" errors with GLOBAL_SCANNER
 
     parsed_ast = parse_binary_expression()
 

@@ -1,5 +1,5 @@
 import os
-from typing import Annotated, List, TextIO
+from typing import List, TextIO
 
 from ..utils.ecco_logging import EccoFileNotFound, EccoSyntaxError
 from .ecco_token import Token, TokenType
@@ -15,7 +15,7 @@ class Scanner:
         self.filename: str = input_fn
         self.file: TextIO
 
-        self.put_back_buffer: Annotated[str, 1] = ""
+        self.put_back_buffer: str = ""
 
         self.line_number: int = 1
 
@@ -49,13 +49,13 @@ class Scanner:
     def close(self):
         self.__exit__(None, None, None)
 
-    def next_character(self) -> Annotated[str, 1]:
+    def next_character(self) -> str:
         """Get the next character from the input stream
 
         Returns:
-            Annotated[str, 1]: The next character from the input stream
+            str: The next character from the input stream
         """
-        c: Annotated[str, 1] = ""
+        c: str = ""
 
         # If we have a character in the putback buffer,
         # we want to read that first, then empty the
@@ -74,22 +74,22 @@ class Scanner:
 
         return c
 
-    def skip(self) -> Annotated[str, 1]:
+    def skip(self) -> str:
         """Gets the next non-whitespace character from the input stream
 
         Returns:
-            Annotated[str, 1]: The next non-whitespace character from the input stream
+            str: The next non-whitespace character from the input stream
         """
-        c: Annotated[str, 1] = self.next_character()
+        c: str = self.next_character()
         while c.isspace():
             c = self.next_character()
         return c
 
-    def put_back(self, c: Annotated[str, 1]) -> None:
+    def put_back(self, c: str) -> None:
         """Put a character back into the input stream
 
         Args:
-            c (Annotated[str, 1]): Character to put back into the input stream
+            c (str): Character to put back into the input stream
         """
         if len(c) != 1:
             raise TypeError(
@@ -98,11 +98,11 @@ class Scanner:
 
         self.put_back_buffer = c
 
-    def scan_integer_literal(self, c: Annotated[str, 1]) -> int:
+    def scan_integer_literal(self, c: str) -> int:
         """Scan integer literals into a buffer and parse them into int objects
 
         Args:
-            c (Annotated[str, 1]): Current character from input stream
+            c (str): Current character from input stream
 
         Returns:
             int: Scanned integer literal
@@ -126,7 +126,7 @@ class Scanner:
         Returns:
             Token: A Token object with the latest scanned data, or None if EOF is reached
         """
-        c: Annotated[str, 1] = self.skip()
+        c: str = self.skip()
         self.current_token = Token()
 
         # Check for EOF
