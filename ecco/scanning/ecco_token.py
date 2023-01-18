@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class TokenType(Enum):
+    """An Enum class to store types of Tokens"""
 
     UNKNOWN_TOKEN = "unknown token"
 
