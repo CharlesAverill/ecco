@@ -1,6 +1,7 @@
-import pkg_resources
-
 from argparse import ArgumentParser, Namespace
+from pathlib import Path
+
+import pkg_resources
 
 
 def get_args() -> Namespace:
@@ -16,7 +17,8 @@ def get_args() -> Namespace:
         description="An Educational C COmpiler written in Python",
     )
 
-    parser.add_argument("PROGRAM", type=str, help="Filename of input program")
+    parser.add_argument("PROGRAM", type=str, help="Path to input program")
+    parser.add_argument("--output", "-o", type=str, help="Path to generated LLVM", default="")
 
     parser.add_argument(
         "--version",
@@ -25,4 +27,8 @@ def get_args() -> Namespace:
         version=f"{parser.prog} {distribution.version}",
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.output == "":
+        args.output = Path(args.PROGRAM).stem + ".ll"
+
+    return args

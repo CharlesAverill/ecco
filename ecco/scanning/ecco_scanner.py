@@ -23,7 +23,6 @@ class Scanner:
 
         self.initialized: bool = False
 
-    # def __enter__(self: Scanner): -> Scanner:
     def __enter__(self):
         """Opens the program file for scanning
 
@@ -41,7 +40,8 @@ class Scanner:
 
     def __exit__(self, _, __, ___):
         """Closes the program file"""
-        self.file.close()
+        if not self.file.closed:
+            self.file.close()
 
     def open(self):
         """Opens the program file for scanning
