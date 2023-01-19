@@ -35,6 +35,16 @@ class Token:
         self.type: TokenType = _type
         self.value: int = _value
 
+    def is_binary_arithmetic(self) -> bool:
+        return int(TokenType.PLUS) <= int(self.type) <= int(TokenType.SLASH)
+
+    def is_terminal(self) -> bool:
+        return (
+            int(TokenType.INTEGER_LITERAL)
+            <= int(self.type)
+            <= int(TokenType.INTEGER_LITERAL)
+        )
+
     def __repr__(self):
         return f"Token:\n\tTYPE = [{str(self.type)}] ({int(self.type)})" + (
             f"\n\tVALUE = {self.value}"

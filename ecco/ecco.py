@@ -1,5 +1,4 @@
 from argparse import Namespace
-from typing import List, TextIO
 
 from .scanning import Scanner
 from .utils import get_args, setup_tracebacks
@@ -27,7 +26,7 @@ def main():
     parsed_ast = parse_binary_expression(0)
 
     generate_llvm(parsed_ast)
-        
+
     GLOBAL_SCANNER.close()
 
 

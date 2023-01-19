@@ -5,9 +5,9 @@ from ..utils.ecco_logging import EccoInternalTypeError
 
 
 class LLVMValueType(Enum):
-    LLVMVALUE_NONE = "LLVMValue (None)"
+    NONE = "LLVMValue (None)"
 
-    LLVMVALUE_VIRTUAL_REGISTER = "LLVMValue (Virtual Register)"
+    VIRTUAL_REGISTER = "LLVMValue (Virtual Register)"
 
     def __str__(self) -> str:
         return self.value
@@ -20,9 +20,18 @@ class LLVMValue:
     def __init__(
         self, lvt: LLVMValueType, value: Union[int, None], stores_pointer: bool = False
     ):
-        self.value_type = lvt
-        if lvt == LLVMValueType.LLVMVALUE_VIRTUAL_REGISTER and type(value) != int:
-            raise EccoInternalTypeError(
-                str(int), str(type(value)), "generation/llvmvalue.py:LLVMValue.__init__"
-            )
+        self.value_type: LLVMValueType = lvt
+        if self.value_type == LLVMValueType.VIRTUAL_REGISTER:
+            if type(value) != int:
+                raise EccoInternalTypeError(
+                    str(int),
+                    str(type(value)),
+                    "generation/llvmvalue.py:LLVMValue.__init__",
+                )
             self.int_value: int = value
+
+    def __repr__(self) -> str:
+        append: str = ""
+        if self.value_type == LLVMValueType.VIRTUAL_REGISTER:
+            append = f": %{self.int_value}"
+        return f"LLVMValue ({self.value_type})" + append

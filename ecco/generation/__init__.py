@@ -1,4 +1,3 @@
-
 from .llvmvalue import LLVMValue
 from .translate import generate_llvm
 

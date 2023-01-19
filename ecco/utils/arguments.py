@@ -18,7 +18,9 @@ def get_args() -> Namespace:
     )
 
     parser.add_argument("PROGRAM", type=str, help="Path to input program")
-    parser.add_argument("--output", "-o", type=str, help="Path to generated LLVM", default="")
+    parser.add_argument(
+        "--output", "-o", type=str, help="Path to generated LLVM", default=""
+    )
 
     parser.add_argument(
         "--version",
