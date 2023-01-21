@@ -77,7 +77,6 @@ def llvm_postamble():
 def llvm_ensure_registers_loaded(
     registers_to_check: List[LLVMValue],
 ) -> List[LLVMValue]:
-    print("Loaded:", [i.int_value for i in LLVM_LOADED_REGISTERS])
     found_registers: List[bool] = [False] * len(registers_to_check)
 
     for loaded_register in LLVM_LOADED_REGISTERS:
@@ -193,7 +192,7 @@ def llvm_binary_arithmetic(
 
 def llvm_store_constant(value: int) -> LLVMValue:
     global LLVM_OUT_FILE
-    from .translate import update_free_register_count
+    from .translate import update_free_register_count, get_free_register_count
 
     LLVM_OUT_FILE.writelines(
         [
@@ -204,7 +203,7 @@ def llvm_store_constant(value: int) -> LLVMValue:
     )
     return LLVMValue(
         LLVMValueType.VIRTUAL_REGISTER,
-        update_free_register_count(0) + 1,
+        get_free_register_count() + 1,
         True,
     )
 

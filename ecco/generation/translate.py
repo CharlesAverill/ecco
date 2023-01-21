@@ -40,6 +40,11 @@ def update_free_register_count(delta: int) -> int:
     return LLVM_FREE_REGISTER_COUNT - delta
 
 
+def get_free_register_count() -> int:
+    global LLVM_FREE_REGISTER_COUNT
+    return LLVM_FREE_REGISTER_COUNT
+
+
 def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStackEntry]:
     from .llvm import get_next_local_virtual_register
 
@@ -81,9 +86,7 @@ def ast_to_llvm(root: ASTNode) -> LLVMValue:
         right_vr = ast_to_llvm(root.right)
 
     if root.token.is_binary_arithmetic():
-        print("Checking load for", left_vr.int_value, right_vr.int_value)
         left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr])
-        print("\t", left_vr.int_value, right_vr.int_value)
         return llvm_binary_arithmetic(root.token, left_vr, right_vr)
     elif root.token.is_terminal():
         if root.token.type == TokenType.INTEGER_LITERAL:
