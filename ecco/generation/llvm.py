@@ -4,6 +4,7 @@ from ..scanning import Token, TokenType
 from ..utils import EccoFatalException
 from .llvmstackentry import LLVMStackEntry
 from .llvmvalue import LLVMValue, LLVMValueType
+from ..ecco import ARGS
 from .translate import (
     LLVM_LOADED_REGISTERS,
     LLVM_OUT_FILE,
@@ -17,9 +18,9 @@ TAB = "\t"
 def llvm_preamble():
     LLVM_OUT_FILE.writelines(
         [
-            f"; ModuleID = '{LLVM_OUT_FILE.name}'",
+            f"; ModuleID = '{ARGS.PROGRAM}'",
             NEWLINE,
-            f'source_filename = "{LLVM_OUT_FILE.name}"',
+            f'source_filename = "{ARGS.PROGRAM}"',
             NEWLINE,
             'target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"',
             NEWLINE,
@@ -95,7 +96,7 @@ def llvm_ensure_registers_loaded(
             LLVM_OUT_FILE.writelines(
                 [
                     TAB,
-                    f"%{new_reg} = load i32, i32* %{registers_to_check[i].int_value}, align 4",
+                    f"%{new_reg} = load i32, i32* %{registers_to_check[i].int_value}",
                     NEWLINE,
                 ]
             )
@@ -197,7 +198,7 @@ def llvm_store_constant(value: int) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"store i32 {value}, i32* %{update_free_register_count(-1)}, align 4",
+            f"store i32 {value}, i32* %{update_free_register_count(-1)}",
             NEWLINE,
         ]
     )
