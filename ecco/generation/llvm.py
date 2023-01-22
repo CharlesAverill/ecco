@@ -86,7 +86,7 @@ def llvm_ensure_registers_loaded(
 
     Args:
         registers_to_check (List[LLVMValue]): A list of LLVMValues containing
-                                              register numbers to check for 
+                                              register numbers to check for
                                               loadedness
 
     Returns:
@@ -163,7 +163,7 @@ def llvm_sub(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
                               the right of the subtraction symbol
 
     Returns:
-        LLVMValue: LLVMValue containing the register number of the difference 
+        LLVMValue: LLVMValue containing the register number of the difference
                    of the contents of left_vr and right_vr
     """
     global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
@@ -190,7 +190,7 @@ def llvm_mul(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
                               the right of the multiplication symbol
 
     Returns:
-        LLVMValue: LLVMValue containing the register number of the product of 
+        LLVMValue: LLVMValue containing the register number of the product of
                    the contents of left_vr and right_vr
     """
     global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
@@ -217,7 +217,7 @@ def llvm_div(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
                               the right of the division symbol
 
     Returns:
-        LLVMValue: LLVMValue containing the register number of the quotient of 
+        LLVMValue: LLVMValue containing the register number of the quotient of
                    the contents of left_vr and right_vr
     """
     global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
@@ -299,7 +299,6 @@ def llvm_store_constant(value: int) -> LLVMValue:
     return LLVMValue(
         LLVMValueType.VIRTUAL_REGISTER,
         get_free_register_count() + 1,
-        True,
     )
 
 
@@ -307,7 +306,7 @@ def llvm_stack_allocation(entries: List[LLVMStackEntry]):
     """Generate allocation statements
 
     Args:
-        entries (List[LLVMStackEntry]): List of LLVMStackEntries that describe 
+        entries (List[LLVMStackEntry]): List of LLVMStackEntries that describe
                                         the requirements of an expression.
     """
     global LLVM_OUT_FILE
@@ -326,7 +325,7 @@ def llvm_print_int(reg: LLVMValue):
     """Print out an integer followed by a newline and a null terminator
 
     Args:
-        reg (LLVMValue): LLVMValue containing the register number of the 
+        reg (LLVMValue): LLVMValue containing the register number of the
                          integer to print
     """
     global LLVM_OUT_FILE

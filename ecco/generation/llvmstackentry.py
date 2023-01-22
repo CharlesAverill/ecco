@@ -7,7 +7,7 @@ class LLVMStackEntry:
 
         Args:
             register (LLVMValue): Register number to assign 'alloca' output to
-            align_bytes (int): Bytes to align the 'alloca' statement with, 
+            align_bytes (int): Bytes to align the 'alloca' statement with,
                                often the byte width of a data type
         """
         self.register = register

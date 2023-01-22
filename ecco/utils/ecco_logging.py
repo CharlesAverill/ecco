@@ -36,7 +36,7 @@ STRING_TO_LEVEL = {
     "INFO": LogLevel.INFO,
     "WARNING": LogLevel.WARNING,
     "ERROR": LogLevel.ERROR,
-    "CRITICAL": LogLevel.CRITICAL
+    "CRITICAL": LogLevel.CRITICAL,
 }
 
 
@@ -50,12 +50,12 @@ def setup_tracebacks() -> None:
 def log(level: LogLevel, message: str, override_category_str: str = ""):
     from ..ecco import ARGS
 
-    if (ARGS.logging == "NONE"):
+    if ARGS.logging == "NONE":
         return
 
     category_str = override_category_str if override_category_str != "" else str(level)
 
-    if(int(level) >= int(STRING_TO_LEVEL[ARGS.logging])):
+    if int(level) >= int(STRING_TO_LEVEL[ARGS.logging]):
         print(f"{level.ansi()}{category_str}: {message}{ANSI_RESET}")
 
 

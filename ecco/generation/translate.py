@@ -14,6 +14,12 @@ LLVM_LOADED_REGISTERS: List[LLVMValue]
 
 
 def translate_init():
+    """Initialize values before translation
+
+    Raises:
+        EccoFileError: Raised if an error occurs while opening the output LLVM
+                       file
+    """
     global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER, LLVM_FREE_REGISTER_COUNT, LLVM_LOADED_REGISTERS
 
     try:
@@ -41,11 +47,20 @@ def update_free_register_count(delta: int) -> int:
 
 
 def get_free_register_count() -> int:
-    global LLVM_FREE_REGISTER_COUNT
-    return LLVM_FREE_REGISTER_COUNT
+    return update_free_register_count(0)
 
 
 def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStackEntry]:
+    """Function to determine the necessary stack allocation for a binary
+    expression
+
+    Args:
+        root (ASTNode): ASTNode storing binary expression
+
+    Returns:
+        List[LLVMStackEntry]: List of LLVMStackEntries describing required
+                              allocated registers
+    """
     from .llvm import get_next_local_virtual_register
 
     left_entry: List[LLVMStackEntry]
@@ -71,6 +86,18 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
 
 
 def ast_to_llvm(root: ASTNode) -> LLVMValue:
+    """Function to traverse an AST and generate LLVM code for it
+
+    Args:
+        root (ASTNode): Root ASTNode of program to generate
+
+    Raises:
+        EccoFatalException: If an unexpected Token is encountered
+
+    Returns:
+        LLVMValue: LLVMValue containing register number of expression value to
+                   print
+    """
     from .llvm import (
         llvm_binary_arithmetic,
         llvm_ensure_registers_loaded,
@@ -84,7 +111,7 @@ def ast_to_llvm(root: ASTNode) -> LLVMValue:
         left_vr = ast_to_llvm(root.left)
     if root.right:
         right_vr = ast_to_llvm(root.right)
-    
+
     if root.token.is_binary_arithmetic():
         left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr])
         return llvm_binary_arithmetic(root.token, left_vr, right_vr)
@@ -100,6 +127,11 @@ def ast_to_llvm(root: ASTNode) -> LLVMValue:
 
 
 def generate_llvm(root: ASTNode):
+    """Abstraction function for generating LLVM for a program
+
+    Args:
+        root (ASTNode): Root ASTNode of program to generate
+    """
     global LLVM_OUT_FILE
 
     translate_init()
