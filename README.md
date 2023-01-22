@@ -26,7 +26,7 @@ A Docker image is provided for non-Linux users, although usage of Linux to proce
 
 2. Install [poetry](https://python-poetry.org/)
     ```bash
-    python -m pip install poetry
+    python3 -m pip install poetry
     ```
 
 3. Install project dependencies
