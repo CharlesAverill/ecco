@@ -3,7 +3,6 @@ from argparse import Namespace
 from .scanning import Scanner
 from .utils import get_args, setup_tracebacks
 
-DEBUG: bool = True
 GLOBAL_SCANNER: Scanner
 ARGS: Namespace
 

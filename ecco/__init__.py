@@ -11,7 +11,6 @@ __all__ = [
     "Scanner",
     "Token",
     "TokenType",
-    "DEBUG",
     "arguments",
     "ecco_logging",
     "EccoFatalException",

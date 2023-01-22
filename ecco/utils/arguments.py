@@ -23,6 +23,20 @@ def get_args() -> Namespace:
     )
 
     parser.add_argument(
+        "--logging",
+        "-l",
+        type=str, help="Minimum level of log statements to print",
+        choices=["NONE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="INFO"
+    )
+    parser.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        help="Equivalent to --logging=\"NONE\" (overrides --logging)"
+    )
+
+    parser.add_argument(
         "--version",
         "-V",
         action="version",
@@ -30,7 +44,11 @@ def get_args() -> Namespace:
     )
 
     args = parser.parse_args()
+
     if args.output == "":
         args.output = Path(args.PROGRAM).stem + ".ll"
+
+    if args.quiet:
+        args.logging = "NONE"
 
     return args

@@ -13,12 +13,12 @@ ERROR_YELLOW = ANSI_YELLOW + ANSI_BOLD
 
 
 class LogLevel(Enum):
-    LOG_NONE = ("", ANSI_RESET)
-    LOG_DEBUG = ("[DEBUG]", ANSI_BOLD)
-    LOG_INFO = ("[INFO]", ANSI_BOLD)
-    LOG_WARNING = ("[WARNING]", ANSI_YELLOW)
-    LOG_ERROR = ("[ERROR]", ANSI_RED)
-    LOG_CRITICAL = ("[CRITICAL]", ANSI_RED)
+    NONE = ("", ANSI_RESET)
+    DEBUG = ("[DEBUG]", ANSI_BOLD)
+    INFO = ("[INFO]", ANSI_BOLD)
+    WARNING = ("[WARNING]", ANSI_YELLOW)
+    ERROR = ("[ERROR]", ANSI_RED)
+    CRITICAL = ("[CRITICAL]", ANSI_RED)
 
     def ansi(self) -> str:
         return self._value_[1]
@@ -26,22 +26,37 @@ class LogLevel(Enum):
     def __str__(self) -> str:
         return self._value_[0]
 
+    def __int__(self) -> int:
+        return LogLevel._member_names_.index(self._name_)
+
+
+STRING_TO_LEVEL = {
+    "NONE": LogLevel.NONE,
+    "DEBUG": LogLevel.DEBUG,
+    "INFO": LogLevel.INFO,
+    "WARNING": LogLevel.WARNING,
+    "ERROR": LogLevel.ERROR,
+    "CRITICAL": LogLevel.CRITICAL
+}
+
 
 def setup_tracebacks() -> None:
-    from ..ecco import DEBUG
+    from ..ecco import ARGS
 
-    if not DEBUG:
+    if not ARGS.logging == "DEBUG":
         sys.tracebacklimit = 0
 
 
 def log(level: LogLevel, message: str, override_category_str: str = ""):
-    from ..ecco import DEBUG
+    from ..ecco import ARGS
 
-    if (not DEBUG) and level == LogLevel.LOG_DEBUG:
+    if (ARGS.logging == "NONE"):
         return
 
     category_str = override_category_str if override_category_str != "" else str(level)
-    print(f"{level.ansi()}{category_str}: {message}{ANSI_RESET}")
+
+    if(int(level) >= int(STRING_TO_LEVEL[ARGS.logging])):
+        print(f"{level.ansi()}{category_str}: {message}{ANSI_RESET}")
 
 
 class EccoFatalException(Exception):
@@ -67,7 +82,7 @@ class EccoFatalException(Exception):
         is really useful for people writing scripts
         that use the compiler
         """
-        log(LogLevel.LOG_ERROR, message, category_string)
+        log(LogLevel.ERROR, message, category_string)
         sys.exit(self.return_code)
 
         # super().__init__(self.message)

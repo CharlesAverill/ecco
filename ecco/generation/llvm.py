@@ -16,6 +16,7 @@ TAB = "\t"
 
 
 def llvm_preamble():
+    """Generates the preamble of the LLVM program"""
     LLVM_OUT_FILE.writelines(
         [
             f"; ModuleID = '{ARGS.PROGRAM}'",
@@ -39,6 +40,7 @@ def llvm_preamble():
 
 
 def llvm_postamble():
+    """Generates the postamble of the LLVM program"""
     LLVM_OUT_FILE.writelines(
         [
             TAB,
@@ -77,16 +79,34 @@ def llvm_postamble():
 def llvm_ensure_registers_loaded(
     registers_to_check: List[LLVMValue],
 ) -> List[LLVMValue]:
+    """Checks if the provided registers are loaded. If not, they will be loaded
+    and the new register values will be returned.  If none of or only some of
+    the input registers are loaded, the already-loaded registers will be
+    returned regardless
+
+    Args:
+        registers_to_check (List[LLVMValue]): A list of LLVMValues containing
+                                              register numbers to check for 
+                                              loadedness
+
+    Returns:
+        List[LLVMValue]: A list of LLVMValues containing loaded register numbers
+                         corresponding to the input registers
+    """
     found_registers: List[bool] = [False] * len(registers_to_check)
 
+    # Check if our input registers are loaded
     for loaded_register in LLVM_LOADED_REGISTERS:
         for i, reg in enumerate(registers_to_check):
+            # Mark as loaded
             if reg.int_value == loaded_register.int_value:
                 found_registers[i] = True
 
+            # If all of our registers are loaded, we can just return them
             if found_registers.count(True) == len(registers_to_check):
                 return registers_to_check
 
+    # Load any unloaded registers
     loaded_registers: List[LLVMValue] = []
     for i in range(len(registers_to_check)):
         if not found_registers[i]:
@@ -107,6 +127,18 @@ def llvm_ensure_registers_loaded(
 
 
 def llvm_add(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
+    """Perform an addition operation
+
+    Args:
+        left_vr (LLVMValue): Virtual register number containing the value on
+                             the left of the addition symbol
+        right_vr (LLVMValue): Virtual register number containing the value on
+                              the right of the addition symbol
+
+    Returns:
+        LLVMValue: LLVMValue containing the register number of the sum of the
+                   contents of left_vr and right_vr
+    """
     global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
 
     out_vr: int = get_next_local_virtual_register()
@@ -122,6 +154,18 @@ def llvm_add(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
 
 
 def llvm_sub(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
+    """Perform a subtraction operation
+
+    Args:
+        left_vr (LLVMValue): Virtual register number containing the value on
+                             the left of the subtraction symbol
+        right_vr (LLVMValue): Virtual register number containing the value on
+                              the right of the subtraction symbol
+
+    Returns:
+        LLVMValue: LLVMValue containing the register number of the difference 
+                   of the contents of left_vr and right_vr
+    """
     global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
 
     out_vr: int = get_next_local_virtual_register()
@@ -137,6 +181,18 @@ def llvm_sub(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
 
 
 def llvm_mul(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
+    """Perform a multiplication operation
+
+    Args:
+        left_vr (LLVMValue): Virtual register number containing the value on
+                             the left of the multiplication symbol
+        right_vr (LLVMValue): Virtual register number containing the value on
+                              the right of the multiplication symbol
+
+    Returns:
+        LLVMValue: LLVMValue containing the register number of the product of 
+                   the contents of left_vr and right_vr
+    """
     global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
 
     out_vr: int = get_next_local_virtual_register()
@@ -152,6 +208,18 @@ def llvm_mul(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
 
 
 def llvm_div(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
+    """Perform an integer division operation
+
+    Args:
+        left_vr (LLVMValue): Virtual register number containing the value on
+                             the left of the division symbol
+        right_vr (LLVMValue): Virtual register number containing the value on
+                              the right of the division symbol
+
+    Returns:
+        LLVMValue: LLVMValue containing the register number of the quotient of 
+                   the contents of left_vr and right_vr
+    """
     global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
 
     out_vr: int = get_next_local_virtual_register()
@@ -169,6 +237,24 @@ def llvm_div(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
 def llvm_binary_arithmetic(
     token: Token, left_vr: LLVMValue, right_vr: LLVMValue
 ) -> LLVMValue:
+    """Abstraction function to generate LLVM for binary arithmetic expressions
+
+    Args:
+        token (Token): Token containing the operation type
+        left_vr (LLVMValue): Virtual register number containing the value on
+                             the left of the operator
+        right_vr (LLVMValue): Virtual register number containing the value on
+                              the right of the operator
+
+    Raises:
+        EccoFatalException: If the passed Token is not a binary arithmetic
+                            operator
+
+    Returns:
+        LLVMValue: LLVMValue containing the register number of the result of
+                   the binary operation on left_vr and right_vr - this register
+                   is guaranteed to be loaded
+    """
     out_vr: LLVMValue
 
     if token.type == TokenType.PLUS:
@@ -191,6 +277,15 @@ def llvm_binary_arithmetic(
 
 
 def llvm_store_constant(value: int) -> LLVMValue:
+    """Store a constant value
+
+    Args:
+        value (int): Constant to be stored
+
+    Returns:
+        LLVMValue: LLVMValue containing the register number of the stored
+                   constant. This register is NOT confirmed to be loaded
+    """
     global LLVM_OUT_FILE
     from .translate import update_free_register_count, get_free_register_count
 
@@ -209,7 +304,14 @@ def llvm_store_constant(value: int) -> LLVMValue:
 
 
 def llvm_stack_allocation(entries: List[LLVMStackEntry]):
+    """Generate allocation statements
+
+    Args:
+        entries (List[LLVMStackEntry]): List of LLVMStackEntries that describe 
+                                        the requirements of an expression.
+    """
     global LLVM_OUT_FILE
+
     for entry in entries:
         LLVM_OUT_FILE.writelines(
             [
@@ -221,7 +323,14 @@ def llvm_stack_allocation(entries: List[LLVMStackEntry]):
 
 
 def llvm_print_int(reg: LLVMValue):
+    """Print out an integer followed by a newline and a null terminator
+
+    Args:
+        reg (LLVMValue): LLVMValue containing the register number of the 
+                         integer to print
+    """
     global LLVM_OUT_FILE
+
     LLVM_OUT_FILE.writelines(
         [
             TAB,

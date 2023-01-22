@@ -84,7 +84,7 @@ def ast_to_llvm(root: ASTNode) -> LLVMValue:
         left_vr = ast_to_llvm(root.left)
     if root.right:
         right_vr = ast_to_llvm(root.right)
-
+    
     if root.token.is_binary_arithmetic():
         left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr])
         return llvm_binary_arithmetic(root.token, left_vr, right_vr)
@@ -124,4 +124,4 @@ def generate_llvm(root: ASTNode):
     if not LLVM_OUT_FILE.closed:
         LLVM_OUT_FILE.close()
 
-    log(LogLevel.LOG_DEBUG, f"LLVM written to {LLVM_OUT_FILE.name}")
+    log(LogLevel.DEBUG, f"LLVM written to {LLVM_OUT_FILE.name}")

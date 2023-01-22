@@ -5,6 +5,7 @@ from ..utils.ecco_logging import EccoInternalTypeError
 
 
 class LLVMValueType(Enum):
+    """An Enum class to store types of LLVMValues"""
     NONE = "LLVMValue (None)"
 
     VIRTUAL_REGISTER = "LLVMValue (Virtual Register)"
@@ -18,8 +19,17 @@ class LLVMValueType(Enum):
 
 class LLVMValue:
     def __init__(
-        self, lvt: LLVMValueType, value: Union[int, None], stores_pointer: bool = False
+        self, lvt: LLVMValueType, value: Union[int, None]
     ):
+        """Stores data about various kinds of LLVM Values
+
+        Args:
+            lvt (LLVMValueType): The type of LLVMValue to instantiate
+            value (Union[int, None]): The stored value\
+
+        Raises:
+            EccoInternalTypeError: _description_
+        """
         self.value_type: LLVMValueType = lvt
         if self.value_type == LLVMValueType.VIRTUAL_REGISTER:
             if type(value) != int:
