@@ -33,7 +33,7 @@ case $1 in
 
     drun)
         echo "-----DRUN----"
-        drun
+        drun $@
     ;;
 
     dbuildrun)
