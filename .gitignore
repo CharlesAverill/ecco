@@ -4,5 +4,6 @@ __pycache__/
 *.py[cod]
 dist/
 .mypy_cache/
-*.ll
 *.out
+*.ll
+
