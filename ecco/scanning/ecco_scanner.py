@@ -141,7 +141,7 @@ class Scanner:
         """
         identifier: str = ""
 
-        while c.isalpha() or c == "_":
+        while c.isalnum() or c == "_":
             identifier += c
             c = self.next_character()
 
@@ -178,9 +178,7 @@ class Scanner:
                 self.current_token.type = TokenType.INTEGER_LITERAL
                 self.current_token.value = self.scan_integer_literal(c)
             elif c.isalpha() or c == "_":
-                print("Found identifier")
                 scanned_identifier: str = self.scan_identifier(c)
-                print("Scanned identifier", scanned_identifier)
 
                 if scanned_identifier in TokenType.string_values():
                     self.current_token.type = TokenType.from_string(scanned_identifier)
