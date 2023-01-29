@@ -127,8 +127,7 @@ def ast_to_llvm(root: ASTNode) -> LLVMValue:
 
 
 def generate_llvm():
-    """Abstraction function for generating LLVM for a program
-    """
+    """Abstraction function for generating LLVM for a program"""
     global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
 
     translate_init()

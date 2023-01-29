@@ -2,6 +2,7 @@ from .ecco_ast import ASTNode
 from ..scanning import TokenType
 from .expression import parse_binary_expression
 from ..utils import EccoSyntaxError
+from typing import Generator
 
 
 def match_token(tt: TokenType) -> None:
@@ -16,7 +17,7 @@ def match_token(tt: TokenType) -> None:
     )
 
 
-def parse_statements() -> None:
+def parse_statements() -> Generator[ASTNode, None, None]:
     from ..ecco import GLOBAL_SCANNER
 
     tree: ASTNode
