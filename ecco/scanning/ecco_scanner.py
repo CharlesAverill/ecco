@@ -114,9 +114,6 @@ class Scanner:
         Args:
             c (str): Current character from input stream
 
-        Raises:
-            EccoIdentifierError: If identifier is too long
-
         Returns:
             int: Scanned integer literal
         """
@@ -135,6 +132,9 @@ class Scanner:
 
         Args:
             c (str): Current character from input stream
+
+        Raises:
+            EccoIdentifierError: If identifier is too long
 
         Returns:
             str: Scanned identifier buffer
