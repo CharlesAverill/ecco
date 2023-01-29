@@ -1,10 +1,13 @@
 from enum import Enum
+from typing import List
 
 
 class TokenType(Enum):
     """An Enum class to store types of Tokens"""
 
     UNKNOWN_TOKEN = "unknown token"
+
+    EOF = "EOF"
 
     # Operators
     PLUS = "+"
@@ -15,7 +18,22 @@ class TokenType(Enum):
     # Literals
     INTEGER_LITERAL = "integer literal"
 
-    EOF = "EOF"
+    # Keywords
+    PRINT = "print"
+
+    # Miscellaneous
+    SEMICOLON = ";"
+
+    @staticmethod
+    def from_string(s: str) -> "TokenType":
+        for t_type in TokenType:
+            if str(t_type) == s:
+                return t_type
+        return TokenType.UNKNOWN_TOKEN
+
+    @staticmethod
+    def string_values() -> List[str]:
+        return [str(tt) for tt in TokenType]
 
     def __str__(self) -> str:
         return self.value

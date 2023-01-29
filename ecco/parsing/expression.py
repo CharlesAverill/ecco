@@ -2,7 +2,7 @@ from typing import Dict
 
 from ..ecco import GLOBAL_SCANNER
 from ..scanning import Token, TokenType
-from ..utils import EccoSyntaxError
+from ..utils import EccoSyntaxError, EccoEOFMissingSemicolonError
 from .ecco_ast import ASTNode, create_ast_leaf
 
 OPERATOR_PRECEDENCE: Dict[TokenType, int] = {
@@ -27,6 +27,8 @@ def parse_terminal_node() -> ASTNode:
         out = create_ast_leaf(GLOBAL_SCANNER.current_token)
         GLOBAL_SCANNER.scan()
         return out
+    elif GLOBAL_SCANNER.current_token.type == TokenType.EOF:
+        raise EccoEOFMissingSemicolonError()
     else:
         raise EccoSyntaxError(
             f'Expected terminal Token but got "{str(GLOBAL_SCANNER.current_token.type)}"'
@@ -70,10 +72,12 @@ def parse_binary_expression(previous_token_precedence: int) -> ASTNode:
     # GLOBAL_SCANNER.current_token
     left = parse_terminal_node()
 
-    # Reached EOF
+    # Reached the end of a statement
     node_type = GLOBAL_SCANNER.current_token.type
-    if GLOBAL_SCANNER.current_token.type == TokenType.EOF:
+    if node_type == TokenType.SEMICOLON:
         return left
+    elif node_type == TokenType.EOF:
+        raise EccoEOFMissingSemicolonError()
 
     # As long as the precedence of the current token is less than the precedence
     # of the previous token
@@ -87,9 +91,11 @@ def parse_binary_expression(previous_token_precedence: int) -> ASTNode:
         # Join right subtree with current left subtree
         left = ASTNode(Token(node_type), left, right)
 
-        # Update node_type and check for EOF
+        # Update node_type and check for end of statement
         node_type = GLOBAL_SCANNER.current_token.type
-        if node_type == TokenType.EOF:
+        if node_type == TokenType.SEMICOLON:
             break
+        elif node_type == TokenType.EOF:
+            raise EccoEOFMissingSemicolonError()
 
     return left

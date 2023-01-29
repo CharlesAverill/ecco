@@ -63,6 +63,8 @@ class EccoFatalException(Exception):
     return_code = 1
 
     def __init__(self, category_string: str = "", *args):
+        from ..ecco import GLOBAL_SCANNER, ARGS
+
         """Generic fatal exception
 
         Args:
@@ -71,6 +73,8 @@ class EccoFatalException(Exception):
         """
         if args:
             message = " - " + " ".join(args)
+
+        error_header = f'File "{ARGS.PROGRAM}", line {GLOBAL_SCANNER.line_number}:{GLOBAL_SCANNER.char_number}\n'
 
         """
         This is bad lol don't do this normally,
@@ -82,7 +86,7 @@ class EccoFatalException(Exception):
         is really useful for people writing scripts
         that use the compiler
         """
-        log(LogLevel.ERROR, message, category_string)
+        log(LogLevel.ERROR, error_header + message, category_string)
         sys.exit(self.return_code)
 
         # super().__init__(self.message)
@@ -128,6 +132,15 @@ class EccoInternalTypeError(EccoFatalException):
     return_code = 5
 
     def __init__(self, expected_type: str, received_type: str, file_function: str):
+        """An error to be thrown when type mismatching has occurred in the
+        compiler backend
+
+        Args:
+            expected_type (str): Expected type of an object
+            received_type (str): Actual type of the object
+            file_function (str): The file and function in which the mismatch
+                                 occurred
+        """
         super().__init__(
             "INTERNAL TYPE ERROR",
             "Expected",
@@ -136,4 +149,25 @@ class EccoInternalTypeError(EccoFatalException):
             received_type,
             "in",
             file_function,
+        )
+
+
+class EccoIdentifierError(EccoFatalException):
+    return_code = 6
+
+    def __init__(self, message: str):
+        """An error to be thrown when an issue with an identifier is encountered
+
+        Args:
+            message (str): Message to print after error type
+        """
+        super().__init__("IDENTIFIER ERROR", message)
+
+
+class EccoEOFMissingSemicolonError(EccoFatalException):
+    return_code = 7
+
+    def __init__(self):
+        super().__init__(
+            "SYNTAX ERROR", "Encountered unexpected EOF, did you forget a semicolon?"
         )

@@ -19,12 +19,9 @@ def main():
     GLOBAL_SCANNER.scan()
 
     # We will do some imports here to avoid "partially initialized" errors
-    from .generation import generate_llvm
-    from .parsing import parse_binary_expression
+    from .parsing import parse_statement
 
-    parsed_ast = parse_binary_expression(0)
-
-    generate_llvm(parsed_ast)
+    parse_statement()
 
     GLOBAL_SCANNER.close()
 
