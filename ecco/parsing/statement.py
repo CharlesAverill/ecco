@@ -1,7 +1,6 @@
 from .ecco_ast import ASTNode
 from ..scanning import TokenType
 from .expression import parse_binary_expression
-from ..generation import generate_llvm
 from ..utils import EccoSyntaxError
 
 
@@ -26,7 +25,8 @@ def parse_statement() -> None:
         match_token(TokenType.PRINT)
 
         tree = parse_binary_expression(0)
-        generate_llvm(tree)
+        yield tree
+        # generate_llvm(tree)
 
         match_token(TokenType.SEMICOLON)
 

@@ -126,13 +126,10 @@ def ast_to_llvm(root: ASTNode) -> LLVMValue:
     return LLVMValue(LLVMValueType.NONE, None)
 
 
-def generate_llvm(root: ASTNode):
+def generate_llvm():
     """Abstraction function for generating LLVM for a program
-
-    Args:
-        root (ASTNode): Root ASTNode of program to generate
     """
-    global LLVM_OUT_FILE
+    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
 
     translate_init()
 
@@ -142,14 +139,18 @@ def generate_llvm(root: ASTNode):
         llvm_print_int,
         llvm_stack_allocation,
     )
+    from ..parsing import parse_statement
 
     llvm_preamble()
 
-    llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
+    for root in parse_statement():
+        llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
 
-    print_vr: LLVMValue = ast_to_llvm(root)
+        print_vr: LLVMValue = ast_to_llvm(root)
 
-    llvm_print_int(print_vr)
+        llvm_print_int(print_vr)
+
+        LLVM_VIRTUAL_REGISTER_NUMBER += 1
 
     llvm_postamble()
 

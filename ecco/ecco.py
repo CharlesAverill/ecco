@@ -19,9 +19,9 @@ def main():
     GLOBAL_SCANNER.scan()
 
     # We will do some imports here to avoid "partially initialized" errors
-    from .parsing import parse_statement
+    from .generation import generate_llvm
 
-    parse_statement()
+    generate_llvm()
 
     GLOBAL_SCANNER.close()
 
