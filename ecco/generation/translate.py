@@ -139,11 +139,11 @@ def generate_llvm():
         llvm_print_int,
         llvm_stack_allocation,
     )
-    from ..parsing import parse_statement
+    from ..parsing import parse_statements
 
     llvm_preamble()
 
-    for root in parse_statement():
+    for root in parse_statements():
         llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
 
         print_vr: LLVMValue = ast_to_llvm(root)

@@ -16,7 +16,7 @@ def match_token(tt: TokenType) -> None:
     )
 
 
-def parse_statement() -> None:
+def parse_statements() -> None:
     from ..ecco import GLOBAL_SCANNER
 
     tree: ASTNode
