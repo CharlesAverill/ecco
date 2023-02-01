@@ -22,14 +22,12 @@ def parse_statements() -> Generator[ASTNode, None, None]:
 
     tree: ASTNode
 
-    while True:
+    while GLOBAL_SCANNER.current_token.type != TokenType.EOF:
         match_token(TokenType.PRINT)
 
         tree = parse_binary_expression(0)
-        yield tree
-        # generate_llvm(tree)
 
         match_token(TokenType.SEMICOLON)
 
-        if GLOBAL_SCANNER.current_token.type == TokenType.EOF:
-            return
+        # generate_llvm(tree)
+        yield tree
