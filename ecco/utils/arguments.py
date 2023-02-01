@@ -1,4 +1,4 @@
-import pkg_resources
+# import pkg_resources
 from argparse import ArgumentParser, Namespace
 
 
@@ -8,10 +8,10 @@ def get_args() -> Namespace:
     Returns:
         Namespace: Parsed argu
     """
-    distribution = pkg_resources.get_distribution("ecco")
+    distribution = "0.1" #pkg_resources.get_distribution("ecco")
 
     parser = ArgumentParser(
-        prog=distribution.project_name,
+        prog="ecco " + distribution,
         description="An Educational C COmpiler written in Python",
     )
 
@@ -21,7 +21,7 @@ def get_args() -> Namespace:
         "--version",
         "-V",
         action="version",
-        version=f"{parser.prog} {distribution.version}",
+        version=f"{parser.prog} {distribution}",
     )
 
     return parser.parse_args()
