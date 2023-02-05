@@ -16,5 +16,4 @@ __all__ = [
     "EccoFatalException",
     "EccoFileNotFound",
     "EccoSyntaxError",
-    "GLOBAL_SCANNER",
 ]

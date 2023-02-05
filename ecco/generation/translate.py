@@ -118,6 +118,9 @@ def ast_to_llvm(root: ASTNode) -> LLVMValue:
     elif root.token.is_terminal():
         if root.token.type == TokenType.INTEGER_LITERAL:
             return llvm_store_constant(root.token.value)
+    elif root.token.type == TokenType.IDENTIFIER:
+        # TODO
+        pass
     else:
         raise EccoFatalException(
             "", f'Unknown token encountered in ast_to_llvm: "{str(root.token)}"'

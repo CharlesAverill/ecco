@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import List, Union
 
 
 class TokenType(Enum):
@@ -18,11 +18,19 @@ class TokenType(Enum):
     # Literals
     INTEGER_LITERAL = "integer literal"
 
+    # Types
+    INT = "int"
+
+    # Assignment
+    ASSIGN = "="
+
     # Keywords
     PRINT = "print"
 
     # Miscellaneous
     SEMICOLON = ";"
+    IDENTIFIER = "identifier"
+    LEFTVALUE_IDENTIFIER = "leftvalue identifier"
 
     @staticmethod
     def from_string(s: str) -> "TokenType":
@@ -43,7 +51,9 @@ class TokenType(Enum):
 
 
 class Token:
-    def __init__(self, _type: TokenType = TokenType.UNKNOWN_TOKEN, _value: int = 0):
+    def __init__(
+        self, _type: TokenType = TokenType.UNKNOWN_TOKEN, _value: Union[int, str] = 0
+    ):
         """Stores Token data
 
         Args:
@@ -51,7 +61,7 @@ class Token:
             _value (int, optional): Value of Token to instantiate. Defaults to 0.
         """
         self.type: TokenType = _type
-        self.value: int = _value
+        self.value: Union[int, str] = _value
 
     def is_binary_arithmetic(self) -> bool:
         return int(TokenType.PLUS) <= int(self.type) <= int(TokenType.SLASH)

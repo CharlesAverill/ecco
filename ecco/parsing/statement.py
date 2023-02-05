@@ -3,6 +3,8 @@ from ..scanning import TokenType
 from .expression import parse_binary_expression
 from ..utils import EccoSyntaxError
 from typing import Generator
+from .declaration import declaration_statement
+from .assignment import assignment_statement
 
 
 def match_token(tt: TokenType) -> None:
@@ -17,17 +19,36 @@ def match_token(tt: TokenType) -> None:
     )
 
 
+def print_statement() -> ASTNode:
+    match_token(TokenType.PRINT)
+
+    tree = parse_binary_expression(0)
+
+    return tree
+
+
 def parse_statements() -> Generator[ASTNode, None, None]:
     from ..ecco import GLOBAL_SCANNER
 
     tree: ASTNode
+    match_semicolon: bool = True
 
     while GLOBAL_SCANNER.current_token.type != TokenType.EOF:
-        match_token(TokenType.PRINT)
+        if GLOBAL_SCANNER.current_token.type == TokenType.PRINT:
+            tree = print_statement()
+        elif GLOBAL_SCANNER.current_token.type == TokenType.INT:
+            declaration_statement()
+        elif GLOBAL_SCANNER.current_token.type == TokenType.IDENTIFIER:
+            tree = assignment_statement()
+        else:
+            raise EccoSyntaxError(
+                'Unexpected token "{str(GLOBAL_SCANNER.current_token.type)}"'
+            )
 
-        tree = parse_binary_expression(0)
+        if match_semicolon:
+            match_token(TokenType.SEMICOLON)
 
-        match_token(TokenType.SEMICOLON)
+        if tree:
+            yield tree
 
-        # generate_llvm(tree)
-        yield tree
+        tree = None

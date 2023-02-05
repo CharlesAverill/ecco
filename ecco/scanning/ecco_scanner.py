@@ -183,9 +183,8 @@ class Scanner:
                 if scanned_identifier in TokenType.string_values():
                     self.current_token.type = TokenType.from_string(scanned_identifier)
                 else:
-                    raise EccoSyntaxError(
-                        f'Unrecognized identifier "{scanned_identifier}"'
-                    )
+                    self.current_token.type = TokenType.IDENTIFIER
+                    self.current_token.value = scanned_identifier
             else:
                 raise EccoSyntaxError(f'Uncrecognized token "{c}"')
         else:

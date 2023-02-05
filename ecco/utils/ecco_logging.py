@@ -92,6 +92,16 @@ class EccoFatalException(Exception):
         # super().__init__(self.message)
 
 
+class EccoNonfatalWarning(Warning):
+    def __init__(self, *args):
+        message = ""
+
+        if args:
+            message = " ".join(args)
+
+        log(LogLevel.WARNING, message)
+
+
 class EccoFileNotFound(EccoFatalException):
     return_code = 2
 

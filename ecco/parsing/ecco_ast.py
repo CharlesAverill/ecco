@@ -27,27 +27,3 @@ class ASTNode:
             self.right.parent = self
 
         self.parent: ASTNode
-
-
-def create_ast_leaf(from_token: Token) -> ASTNode:
-    """Create an AST leaf Node (no children)
-
-    Args:
-        from_token (Token): Token corresponding to this AST Node
-
-    Returns:
-        ASTNode: ASTNode encoding the information of the passed token
-    """
-    return ASTNode(from_token, None, None)
-
-
-def create_unary_ast_node(from_token: Token, child: ASTNode) -> ASTNode:
-    """Create an AST leaf Node (one child)
-
-    Args:
-        from_token (Token): Token corresponding to this AST Node
-
-    Returns:
-        ASTNode: ASTNode encoding the information of the passed token
-    """
-    return ASTNode(from_token, child, None)
