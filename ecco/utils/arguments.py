@@ -9,7 +9,7 @@ def get_args() -> Namespace:
     Returns:
         Namespace: Parsed argu
     """
-    distribution = "0.1" #pkg_resources.get_distribution("ecco")
+    distribution = "0.1"  # pkg_resources.get_distribution("ecco")
 
     parser = ArgumentParser(
         prog="ecco " + distribution,
