@@ -90,11 +90,11 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
         )
         update_free_register_count(1)
         return [out_entry]
-    
+
     return []
 
 
-def ast_to_llvm(root: ASTNode, register_number: int) -> LLVMValue:
+def ast_to_llvm(root: ASTNode, rvalue_register_number: int) -> LLVMValue:
     """Function to traverse an AST and generate LLVM code for it
 
     Args:
@@ -133,10 +133,10 @@ def ast_to_llvm(root: ASTNode, register_number: int) -> LLVMValue:
     elif root.token.type == TokenType.IDENTIFIER:
         return llvm_load_global(str(root.token.value))
     elif root.token.type == TokenType.LEFTVALUE_IDENTIFIER:
-        llvm_store_global(str(root.token.value), register_number)
-        return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, register_number)
+        llvm_store_global(str(root.token.value), rvalue_register_number)
+        return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, rvalue_register_number)
     elif root.token.type == TokenType.ASSIGN:
-        return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, register_number)
+        return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, rvalue_register_number)
     elif root.token.type == TokenType.PRINT:
         llvm_print_int(left_vr)
     else:
