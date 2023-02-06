@@ -1,13 +1,14 @@
 from typing import List, TextIO
 
-from ..ecco import ARGS
 from ..parsing import ASTNode
 from ..scanning import TokenType
 from ..utils import EccoFatalException, EccoFileError, LogLevel, log
 from .llvmstackentry import LLVMStackEntry
 from .llvmvalue import LLVMValue, LLVMValueType
+import tempfile
 
 LLVM_OUT_FILE: TextIO
+LLVM_GLOBALS_FILE: TextIO
 LLVM_VIRTUAL_REGISTER_NUMBER: int
 LLVM_FREE_REGISTER_COUNT: int
 LLVM_LOADED_REGISTERS: List[LLVMValue]
@@ -20,10 +21,16 @@ def translate_init():
         EccoFileError: Raised if an error occurs while opening the output LLVM
                        file
     """
-    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER, LLVM_FREE_REGISTER_COUNT, LLVM_LOADED_REGISTERS
+    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER, LLVM_FREE_REGISTER_COUNT, LLVM_LOADED_REGISTERS, LLVM_GLOBALS_FILE
+    from ..ecco import ARGS
 
     try:
-        LLVM_OUT_FILE = open(ARGS.output, "w")
+        LLVM_OUT_FILE = open(ARGS.output, "w+")
+    except Exception as e:
+        raise EccoFileError(str(e))
+
+    try:
+        LLVM_GLOBALS_FILE = tempfile.TemporaryFile(mode="w+")
     except Exception as e:
         raise EccoFileError(str(e))
 
@@ -63,8 +70,8 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
     """
     from .llvm import get_next_local_virtual_register
 
-    left_entry: List[LLVMStackEntry]
-    right_entry: List[LLVMStackEntry]
+    left_entry: List[LLVMStackEntry] = []
+    right_entry: List[LLVMStackEntry] = []
 
     if root.left or root.right:
         if root.left:
@@ -73,7 +80,7 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
             right_entry = determine_binary_expression_stack_allocation(root.right)
 
         return left_entry + right_entry
-    else:
+    elif root.token.type == TokenType.INTEGER_LITERAL:
         out_entry = LLVMStackEntry(
             LLVMValue(
                 LLVMValueType.VIRTUAL_REGISTER,
@@ -83,9 +90,22 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
         )
         update_free_register_count(1)
         return [out_entry]
+    elif root.token.type == TokenType.IDENTIFIER:
+        out_entry = LLVMStackEntry(
+            LLVMValue(
+                LLVMValueType.VIRTUAL_REGISTER,
+                get_next_local_virtual_register()
+            ),
+            4
+        )
+        update_free_register_count(1)
+        return [out_entry]
+    
+    return []
 
 
-def ast_to_llvm(root: ASTNode) -> LLVMValue:
+
+def ast_to_llvm(root: ASTNode, register_number: int) -> LLVMValue:
     """Function to traverse an AST and generate LLVM code for it
 
     Args:
@@ -102,25 +122,34 @@ def ast_to_llvm(root: ASTNode) -> LLVMValue:
         llvm_binary_arithmetic,
         llvm_ensure_registers_loaded,
         llvm_store_constant,
+        llvm_load_global,
+        llvm_store_global,
+        llvm_print_int,
     )
 
     left_vr: LLVMValue
     right_vr: LLVMValue
 
     if root.left:
-        left_vr = ast_to_llvm(root.left)
+        left_vr = ast_to_llvm(root.left, 0)
     if root.right:
-        right_vr = ast_to_llvm(root.right)
+        right_vr = ast_to_llvm(root.right, left_vr.int_value)
 
     if root.token.is_binary_arithmetic():
         left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr])
         return llvm_binary_arithmetic(root.token, left_vr, right_vr)
     elif root.token.is_terminal():
         if root.token.type == TokenType.INTEGER_LITERAL:
-            return llvm_store_constant(root.token.value)
+            return llvm_store_constant(int(root.token.value))
     elif root.token.type == TokenType.IDENTIFIER:
-        # TODO
-        pass
+        return llvm_load_global(str(root.token.value))
+    elif root.token.type == TokenType.LEFTVALUE_IDENTIFIER:
+        llvm_store_global(str(root.token.value), register_number)
+        return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, register_number)
+    elif root.token.type == TokenType.ASSIGN:
+        return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, register_number)
+    elif root.token.type == TokenType.PRINT:
+        llvm_print_int(left_vr)
     else:
         raise EccoFatalException(
             "", f'Unknown token encountered in ast_to_llvm: "{str(root.token)}"'
@@ -131,7 +160,7 @@ def ast_to_llvm(root: ASTNode) -> LLVMValue:
 
 def generate_llvm() -> None:
     """Abstraction function for generating LLVM for a program"""
-    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
+    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER, LLVM_GLOBALS_FILE
 
     translate_init()
 
@@ -148,15 +177,20 @@ def generate_llvm() -> None:
     for root in parse_statements():
         llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
 
-        print_vr: LLVMValue = ast_to_llvm(root)
+        print_vr: LLVMValue = ast_to_llvm(root, 0)
 
-        llvm_print_int(print_vr)
-
-        LLVM_VIRTUAL_REGISTER_NUMBER += 1
+        # llvm_print_int(print_vr)
 
     llvm_postamble()
 
+    from .clang import link_llvm_globals
+
+    link_llvm_globals()
+
     if not LLVM_OUT_FILE.closed:
         LLVM_OUT_FILE.close()
+
+    if not LLVM_GLOBALS_FILE.closed:
+        LLVM_GLOBALS_FILE.close()
 
     log(LogLevel.DEBUG, f"LLVM written to {LLVM_OUT_FILE.name}")

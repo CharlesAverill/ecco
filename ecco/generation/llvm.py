@@ -9,10 +9,15 @@ from .translate import (
     LLVM_LOADED_REGISTERS,
     LLVM_OUT_FILE,
     get_next_local_virtual_register,
+    LLVM_GLOBALS_FILE,
 )
 
 NEWLINE = "\n"
 TAB = "\t"
+
+LLVM_GLOBALS_PLACEHOLDER = (
+    "<ECCO GLOBALS PLACEHOLDER - If you see this, an issue with ECCO occurrred!>"
+)
 
 
 def llvm_preamble():
@@ -29,6 +34,8 @@ def llvm_preamble():
             NEWLINE,
             NEWLINE,
             '@print_int_fstring = private unnamed_addr constant [4 x i8] c"%d\\0A\\00", align 1',
+            NEWLINE,
+            LLVM_GLOBALS_PLACEHOLDER,
             NEWLINE,
             NEWLINE,
             "; Function Attrs: noinline nounwind optnone uwtable",
@@ -139,8 +146,6 @@ def llvm_add(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
         LLVMValue: LLVMValue containing the register number of the sum of the
                    contents of left_vr and right_vr
     """
-    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
-
     out_vr: int = get_next_local_virtual_register()
     LLVM_OUT_FILE.writelines(
         [
@@ -166,8 +171,6 @@ def llvm_sub(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
         LLVMValue: LLVMValue containing the register number of the difference
                    of the contents of left_vr and right_vr
     """
-    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
-
     out_vr: int = get_next_local_virtual_register()
     LLVM_OUT_FILE.writelines(
         [
@@ -193,8 +196,6 @@ def llvm_mul(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
         LLVMValue: LLVMValue containing the register number of the product of
                    the contents of left_vr and right_vr
     """
-    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
-
     out_vr: int = get_next_local_virtual_register()
     LLVM_OUT_FILE.writelines(
         [
@@ -220,8 +221,6 @@ def llvm_div(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
         LLVMValue: LLVMValue containing the register number of the quotient of
                    the contents of left_vr and right_vr
     """
-    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER
-
     out_vr: int = get_next_local_virtual_register()
     LLVM_OUT_FILE.writelines(
         [
@@ -286,7 +285,6 @@ def llvm_store_constant(value: int) -> LLVMValue:
         LLVMValue: LLVMValue containing the register number of the stored
                    constant. This register is NOT confirmed to be loaded
     """
-    global LLVM_OUT_FILE
     from .translate import update_free_register_count, get_free_register_count
 
     LLVM_OUT_FILE.writelines(
@@ -302,6 +300,25 @@ def llvm_store_constant(value: int) -> LLVMValue:
     )
 
 
+def llvm_declare_global(name: str, value: int = 0):
+    LLVM_GLOBALS_FILE.writelines([f"@{name} = global i32 {value}", NEWLINE])
+
+
+def llvm_load_global(name: str) -> LLVMValue:
+    out_vr: int = get_next_local_virtual_register()
+
+    LLVM_OUT_FILE.writelines([TAB, f"%{out_vr} = load i32, i32* @{name}", NEWLINE])
+
+    LLVM_LOADED_REGISTERS.append(LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr))
+
+    return LLVM_LOADED_REGISTERS[-1]
+
+
+def llvm_store_global(name: str, rvalue_reg: int):
+    rvalue_reg = llvm_ensure_registers_loaded([LLVMValue(LLVMValueType.VIRTUAL_REGISTER, rvalue_reg)])[0].int_value
+    LLVM_OUT_FILE.writelines([TAB, f"store i32 %{rvalue_reg}, i32* @{name}", NEWLINE])
+
+
 def llvm_stack_allocation(entries: List[LLVMStackEntry]):
     """Generate allocation statements
 
@@ -309,8 +326,6 @@ def llvm_stack_allocation(entries: List[LLVMStackEntry]):
         entries (List[LLVMStackEntry]): List of LLVMStackEntries that describe
                                         the requirements of an expression.
     """
-    global LLVM_OUT_FILE
-
     for entry in entries:
         LLVM_OUT_FILE.writelines(
             [
@@ -328,7 +343,7 @@ def llvm_print_int(reg: LLVMValue):
         reg (LLVMValue): LLVMValue containing the register number of the
                          integer to print
     """
-    global LLVM_OUT_FILE
+    get_next_local_virtual_register()
 
     LLVM_OUT_FILE.writelines(
         [

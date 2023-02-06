@@ -1,9 +1,10 @@
 from typing import Dict
 
-from ..ecco import GLOBAL_SCANNER
 from ..scanning import Token, TokenType
-from ..utils import EccoSyntaxError, EccoEOFMissingSemicolonError
-from .ecco_ast import ASTNode, create_ast_leaf
+from ..utils import EccoSyntaxError, EccoEOFMissingSemicolonError, EccoIdentifierError
+from .ecco_ast import ASTNode
+from typing import Optional
+from ..generation.symboltable import SymbolTableEntry
 
 OPERATOR_PRECEDENCE: Dict[TokenType, int] = {
     TokenType.PLUS: 12,
@@ -22,17 +23,26 @@ def parse_terminal_node() -> ASTNode:
     Returns:
         ASTNode: An ASTNode storing the parsed terminal token information
     """
+    from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
+
     out: ASTNode
     if GLOBAL_SCANNER.current_token.type == TokenType.INTEGER_LITERAL:
-        out = create_ast_leaf(GLOBAL_SCANNER.current_token)
-        GLOBAL_SCANNER.scan()
-        return out
+        out = ASTNode(GLOBAL_SCANNER.current_token, None, None)
+    elif GLOBAL_SCANNER.current_token.type == TokenType.IDENTIFIER:
+        ident: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[str(GLOBAL_SCANNER.current_token.value)]
+        if not ident:
+            raise EccoIdentifierError(f"Undeclared variable \"{GLOBAL_SCANNER.current_token.value}\"")
+
+        out = ASTNode(Token(TokenType.IDENTIFIER, ident.identifier_name), None, None)
     elif GLOBAL_SCANNER.current_token.type == TokenType.EOF:
         raise EccoEOFMissingSemicolonError()
     else:
         raise EccoSyntaxError(
             f'Expected terminal Token but got "{str(GLOBAL_SCANNER.current_token.type)}"'
         )
+
+    GLOBAL_SCANNER.scan()
+    return out
 
 
 def error_check_precedence(node_type: TokenType) -> int:
@@ -64,6 +74,8 @@ def parse_binary_expression(previous_token_precedence: int) -> ASTNode:
     Returns:
         ASTNode: An ASTNode encoding the entire binary expression
     """
+    from ..ecco import GLOBAL_SCANNER
+
     left: ASTNode
     right: ASTNode
     node_type: TokenType

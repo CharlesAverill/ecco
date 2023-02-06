@@ -2,12 +2,11 @@ from argparse import Namespace
 
 from .scanning import Scanner
 from .utils import get_args, setup_tracebacks
-from .generation.symboltable import SymbolTable, SymbolTableInterface
-from typing import Type
+from .generation.symboltable import SymbolTable
 
 GLOBAL_SCANNER: Scanner
 ARGS: Namespace
-GLOBAL_SYMBOL_TABLE: Type[SymbolTableInterface]
+GLOBAL_SYMBOL_TABLE: SymbolTable
 
 
 def main():

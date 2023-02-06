@@ -30,6 +30,8 @@ class LLVMValue:
             EccoInternalTypeError: _description_
         """
         self.value_type: LLVMValueType = lvt
+        self.int_value: int = 0
+
         if self.value_type == LLVMValueType.VIRTUAL_REGISTER:
             if type(value) != int:
                 raise EccoInternalTypeError(
@@ -37,7 +39,7 @@ class LLVMValue:
                     str(type(value)),
                     "generation/llvmvalue.py:LLVMValue.__init__",
                 )
-            self.int_value: int = value
+            self.int_value = value
 
     def __repr__(self) -> str:
         append: str = ""

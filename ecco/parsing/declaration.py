@@ -1,23 +1,24 @@
-from .ecco_ast import ASTNode
-from .statement import match_token
 from ..scanning import TokenType
-from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
 from ..utils import EccoInternalTypeError
+from ..generation.symboltable import SymbolTableEntry
 
 
 def declaration_statement() -> None:
+    from .statement import match_token
+    from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
+    from ..generation.llvm import llvm_declare_global
+
     match_token(TokenType.INT)
 
-    match_token(TokenType.IDENTIFIER)
+    ident = match_token(TokenType.IDENTIFIER)
 
-    ident = GLOBAL_SCANNER.current_token.value
-    if type(GLOBAL_SCANNER.current_token.value) != str:
+    if type(ident) != str:
         raise EccoInternalTypeError(
             "str",
             str(type(GLOBAL_SCANNER.current_token.value)),
             "ecco/parsing/declaration.py:declaration_statement",
         )
 
-    GLOBAL_SYMBOL_TABLE.update(ident, 0)
+    GLOBAL_SYMBOL_TABLE.update(ident, SymbolTableEntry(ident, 0))
 
-    # llvm_generate_global_variable
+    llvm_declare_global(ident, 0)

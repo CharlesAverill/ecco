@@ -1,4 +1,4 @@
-from typing import Optional, List, Callable, Type
+from typing import Optional, List, Callable
 from abc import ABC, abstractmethod
 
 # https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV_offset_basis
@@ -25,7 +25,11 @@ class SymbolTableInterface(ABC):
         pass
 
     @abstractmethod
-    def update(self, identifier: str, entry: Optional[SymbolTableEntry]) -> bool:
+    def update(
+        self,
+        identifier: str,
+        entry: Optional[SymbolTableEntry],
+    ) -> bool:
         pass
 
     @abstractmethod
@@ -103,9 +107,12 @@ class FPSymbolTable(SymbolTableInterface):
         symbol_already_exists: bool = self.get(identifier) is not None
 
         def new_symbol_table(s: str) -> Optional[SymbolTableEntry]:
+            current_symbol_table = self.data
+
             if s == identifier:
                 return entry
-            return self.get(s)
+
+            return current_symbol_table(s)
 
         self.data = new_symbol_table
 
@@ -120,4 +127,4 @@ class FPSymbolTable(SymbolTableInterface):
         return self.data(identifier)
 
 
-SymbolTable: Type[SymbolTableInterface] = FPSymbolTable
+SymbolTable = HashTableSymbolTable

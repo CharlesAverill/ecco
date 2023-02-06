@@ -191,8 +191,3 @@ class Scanner:
             self.current_token.type = possible_token_type
 
         return self.current_token
-
-    def scan_file(self) -> None:
-        """Scans a file and prints out its Tokens"""
-        while self.scan():
-            print(self.current_token)
