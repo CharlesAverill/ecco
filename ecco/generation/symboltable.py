@@ -78,12 +78,39 @@ class HashTableSymbolTable(SymbolTableInterface):
         """
         id_index = self.hash(identifier)
 
-        symbol_already_exists = False
+        symbol_already_exists = True
 
         if self.data[id_index] is None:
-            symbol_already_exists = True
+            # If there is no linked list at this position
+            symbol_already_exists = False
+            self.data[id_index] = entry
+        else:
+            # If there is a linked list at this position, we should search
+            # along it to see if a matching identifier exists. If it does,
+            # insert its value. Otherwise, add this new entry to the end
+            # of the linked list
+            linked_list_item = self.data[id_index]
+            if linked_list_item:
+                while linked_list_item and linked_list_item.next:
+                    if linked_list_item.next.identifier_name == identifier:
+                        nextnext = linked_list_item.next.next
 
-        self.data[id_index] = entry
+                        if entry is None:
+                            linked_list_item.next = nextnext
+                        else:
+                            linked_list_item.next = entry
+
+                        if linked_list_item.next:
+                            linked_list_item.next.next = nextnext
+                        else:
+                            linked_list_item.next = nextnext
+
+                    linked_list_item = linked_list_item.next
+                else:
+                    if linked_list_item:
+                        linked_list_item.next = entry
+            else:
+                self.data[id_index] = entry
 
         return symbol_already_exists
 
@@ -96,7 +123,13 @@ class HashTableSymbolTable(SymbolTableInterface):
         Returns:
             Optional[SymbolTableEntry]: Value mapped from provided identifier
         """
-        return self.data[self.hash(identifier)]
+        linked_list: Optional[SymbolTableEntry] = self.data[self.hash(identifier)]
+        out = linked_list
+
+        while out is not None and out.identifier_name != identifier:
+            out = out.next
+
+        return out
 
     def hash(self, s: str) -> int:
         """Hash function converting identifiers to hash table indices
