@@ -29,9 +29,13 @@ def parse_terminal_node() -> ASTNode:
     if GLOBAL_SCANNER.current_token.type == TokenType.INTEGER_LITERAL:
         out = ASTNode(GLOBAL_SCANNER.current_token, None, None)
     elif GLOBAL_SCANNER.current_token.type == TokenType.IDENTIFIER:
-        ident: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[str(GLOBAL_SCANNER.current_token.value)]
+        ident: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[
+            str(GLOBAL_SCANNER.current_token.value)
+        ]
         if not ident:
-            raise EccoIdentifierError(f"Undeclared variable \"{GLOBAL_SCANNER.current_token.value}\"")
+            raise EccoIdentifierError(
+                f'Undeclared variable "{GLOBAL_SCANNER.current_token.value}"'
+            )
 
         out = ASTNode(Token(TokenType.IDENTIFIER, ident.identifier_name), None, None)
     elif GLOBAL_SCANNER.current_token.type == TokenType.EOF:

@@ -1,14 +1,13 @@
 from .translate import LLVM_GLOBALS_FILE, LLVM_OUT_FILE
 from .llvm import LLVM_GLOBALS_PLACEHOLDER
-from ..utils import EccoFatalException
 from tempfile import TemporaryFile
-from typing import TextIO
+from typing import IO
 
 
 def link_llvm_globals() -> None:
     LLVM_OUT_FILE.seek(0)
     LLVM_GLOBALS_FILE.seek(0)
-    temp: TextIO = TemporaryFile(mode="w+")
+    temp: IO[str] = TemporaryFile(mode="w+")
 
     for line in LLVM_OUT_FILE:
         # Check if current line is placeholder

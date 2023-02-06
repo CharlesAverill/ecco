@@ -93,16 +93,14 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
     elif root.token.type == TokenType.IDENTIFIER:
         out_entry = LLVMStackEntry(
             LLVMValue(
-                LLVMValueType.VIRTUAL_REGISTER,
-                get_next_local_virtual_register()
+                LLVMValueType.VIRTUAL_REGISTER, get_next_local_virtual_register()
             ),
-            4
+            4,
         )
         update_free_register_count(1)
         return [out_entry]
-    
-    return []
 
+    return []
 
 
 def ast_to_llvm(root: ASTNode, register_number: int) -> LLVMValue:
@@ -167,7 +165,6 @@ def generate_llvm() -> None:
     from .llvm import (
         llvm_postamble,
         llvm_preamble,
-        llvm_print_int,
         llvm_stack_allocation,
     )
     from ..parsing import parse_statements
@@ -177,9 +174,7 @@ def generate_llvm() -> None:
     for root in parse_statements():
         llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
 
-        print_vr: LLVMValue = ast_to_llvm(root, 0)
-
-        # llvm_print_int(print_vr)
+        ast_to_llvm(root, 0)
 
     llvm_postamble()
 

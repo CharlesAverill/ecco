@@ -315,7 +315,9 @@ def llvm_load_global(name: str) -> LLVMValue:
 
 
 def llvm_store_global(name: str, rvalue_reg: int):
-    rvalue_reg = llvm_ensure_registers_loaded([LLVMValue(LLVMValueType.VIRTUAL_REGISTER, rvalue_reg)])[0].int_value
+    rvalue_reg = llvm_ensure_registers_loaded(
+        [LLVMValue(LLVMValueType.VIRTUAL_REGISTER, rvalue_reg)]
+    )[0].int_value
     LLVM_OUT_FILE.writelines([TAB, f"store i32 %{rvalue_reg}, i32* @{name}", NEWLINE])
 
 
