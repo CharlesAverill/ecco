@@ -301,10 +301,24 @@ def llvm_store_constant(value: int) -> LLVMValue:
 
 
 def llvm_declare_global(name: str, value: int = 0):
+    """Declare a global variable
+
+    Args:
+        name (str): Name of global variable
+        value (int, optional): Value to set variable to. Defaults to 0.
+    """
     LLVM_GLOBALS_FILE.writelines([f"@{name} = global i32 {value}", NEWLINE])
 
 
 def llvm_load_global(name: str) -> LLVMValue:
+    """Load a global variable
+
+    Args:
+        name (str): Name of variable to load
+
+    Returns:
+        LLVMValue: LLVMValue containing the register number the variable was loaded into
+    """
     out_vr: int = get_next_local_virtual_register()
 
     LLVM_OUT_FILE.writelines([TAB, f"%{out_vr} = load i32, i32* @{name}", NEWLINE])
@@ -315,6 +329,12 @@ def llvm_load_global(name: str) -> LLVMValue:
 
 
 def llvm_store_global(name: str, rvalue_reg: int):
+    """Store a value into a global variable
+
+    Args:
+        name (str): Global variable to store into
+        rvalue_reg (int): Register containing the contents to store into the variable
+    """
     rvalue_reg = llvm_ensure_registers_loaded(
         [LLVMValue(LLVMValueType.VIRTUAL_REGISTER, rvalue_reg)]
     )[0].int_value

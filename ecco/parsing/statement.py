@@ -8,6 +8,17 @@ from .assignment import assignment_statement
 
 
 def match_token(tt: TokenType) -> Union[str, int]:
+    """Ensure the current token is of a certain type, then scan another token
+
+    Args:
+        tt (TokenType): TokenType to match
+
+    Raises:
+        EccoSyntaxError: If an incorrect token type is encountered
+
+    Returns:
+        Union[str, int]: The value of the matching token
+    """
     from ..ecco import GLOBAL_SCANNER
 
     if GLOBAL_SCANNER.current_token.type == tt:

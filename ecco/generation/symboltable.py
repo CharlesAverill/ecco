@@ -55,12 +55,27 @@ class HashTableSymbolTable(SymbolTableInterface):
 
     @property
     def length(self) -> int:
+        """Length of symbol table"""
         return len(self.data)
 
     def resize(self, factor: int = 2) -> None:
+        """Resizes symbol table by a factor of factor
+
+        Args:
+            factor (int, optional): Factor by which to expand symbol table. Defaults to 2.
+        """
         self.data += [None] * factor
 
     def update(self, identifier: str, entry: Optional[SymbolTableEntry]) -> bool:
+        """Assign a new value to an identifier
+
+        Args:
+            identifier (str): Identifier to assign to
+            entry (Optional[SymbolTableEntry]): Value to assign
+
+        Returns:
+            bool: If the symbol already existed in the table
+        """
         id_index = self.hash(identifier)
 
         symbol_already_exists = False
@@ -73,9 +88,25 @@ class HashTableSymbolTable(SymbolTableInterface):
         return symbol_already_exists
 
     def get(self, identifier: str) -> Optional[SymbolTableEntry]:
+        """Get a value from the symbol table
+
+        Args:
+            identifier (str): Identifier mapped to output value
+
+        Returns:
+            Optional[SymbolTableEntry]: Value mapped from provided identifier
+        """
         return self.data[self.hash(identifier)]
 
     def hash(self, s: str) -> int:
+        """Hash function converting identifiers to hash table indices
+
+        Args:
+            s (str): String to hash
+
+        Returns:
+            int: FNV-1 value of input string
+        """
         # Implementation of FNV_1A
         # Check out this post for other hashes you could implement
         # https://softwareengineering.stackexchange.com/questions/49550/which-hashing-algorithm-is-best-for-uniqueness-and-speed

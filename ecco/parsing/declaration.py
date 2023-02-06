@@ -4,6 +4,11 @@ from ..generation.symboltable import SymbolTableEntry
 
 
 def declaration_statement() -> None:
+    """Parse a declaration statement
+
+    Raises:
+        EccoInternalTypeError: If an incorrect Token value is encountered
+    """
     from .statement import match_token
     from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
     from ..generation.llvm import llvm_declare_global

@@ -5,6 +5,15 @@ from .expression import parse_binary_expression
 
 
 def assignment_statement() -> ASTNode:
+    """Parse an assignment statement
+
+    Raises:
+        EccoInternalTypeError: If an incorrect identifier type is encountered
+        EccoFatalException: If an undefined variable is encountered
+
+    Returns:
+        ASTNode: ASTNode encoding assignment tree
+    """
     from .statement import match_token
     from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
 

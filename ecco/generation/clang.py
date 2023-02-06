@@ -5,6 +5,7 @@ from typing import IO
 
 
 def link_llvm_globals() -> None:
+    """Add global variable data to the top of LLVM_OUT_FILE"""
     LLVM_OUT_FILE.seek(0)
     LLVM_GLOBALS_FILE.seek(0)
     temp: IO[str] = TemporaryFile(mode="w+")
