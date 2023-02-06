@@ -80,7 +80,7 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
             right_entry = determine_binary_expression_stack_allocation(root.right)
 
         return left_entry + right_entry
-    elif root.token.type == TokenType.INTEGER_LITERAL:
+    elif root.token.type in [TokenType.INTEGER_LITERAL, TokenType.IDENTIFIER]:
         out_entry = LLVMStackEntry(
             LLVMValue(
                 LLVMValueType.VIRTUAL_REGISTER,
@@ -90,16 +90,7 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
         )
         update_free_register_count(1)
         return [out_entry]
-    elif root.token.type == TokenType.IDENTIFIER:
-        out_entry = LLVMStackEntry(
-            LLVMValue(
-                LLVMValueType.VIRTUAL_REGISTER, get_next_local_virtual_register()
-            ),
-            4,
-        )
-        update_free_register_count(1)
-        return [out_entry]
-
+    
     return []
 
 
