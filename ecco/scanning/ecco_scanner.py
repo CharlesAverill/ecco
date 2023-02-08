@@ -150,7 +150,7 @@ class Scanner:
                 self.current_token.type = TokenType.INTEGER_LITERAL
                 self.current_token.value = self.scan_integer_literal(c)
             else:
-                raise EccoSyntaxError(f'Uncrecognized token "{c}"')
+                raise EccoSyntaxError(f'Unrecognized token "{c}"')
         else:
             if len(c) == 1:
                 self.current_token.type = possible_token_types[0]
