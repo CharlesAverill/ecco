@@ -1,8 +1,6 @@
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-import pkg_resources
-
 
 def get_args() -> Namespace:
     """Parse and return arguments
