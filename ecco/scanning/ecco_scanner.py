@@ -1,7 +1,13 @@
 import os
 from typing import TextIO
 
-from ..utils.ecco_logging import EccoFileNotFound, EccoSyntaxError, EccoIdentifierError
+from ..utils.ecco_logging import (
+    EccoFileNotFound,
+    EccoSyntaxError,
+    EccoIdentifierError,
+    log,
+    LogLevel,
+)
 from .ecco_token import Token, TokenType
 
 
@@ -164,6 +170,14 @@ class Scanner:
             Token: A Token object with the latest scanned data, or None if EOF is reached
         """
         c: str = self.skip()
+        next_char: str = self.skip()
+
+        # Single-line comment parsing
+        if c + next_char == "//":
+            while c != "\n":
+                c = self.next_character()
+            return self.scan()
+
         self.current_token = Token()
 
         # Check for EOF
@@ -171,7 +185,7 @@ class Scanner:
             self.current_token.type = TokenType.EOF
             return self.current_token
 
-        possible_token_type = TokenType.from_string(c)
+        possible_token_type = TokenType.from_string(c, next_char)
 
         if possible_token_type == TokenType.UNKNOWN_TOKEN:
             if c.isdigit():
@@ -181,7 +195,9 @@ class Scanner:
                 scanned_identifier: str = self.scan_identifier(c)
 
                 if scanned_identifier in TokenType.string_values():
-                    self.current_token.type = TokenType.from_string(scanned_identifier)
+                    self.current_token.type = TokenType.from_string(
+                        scanned_identifier, ""
+                    )
                 else:
                     self.current_token.type = TokenType.IDENTIFIER
                     self.current_token.value = scanned_identifier
@@ -189,5 +205,7 @@ class Scanner:
                 raise EccoSyntaxError(f'Uncrecognized token "{c}"')
         else:
             self.current_token.type = possible_token_type
+
+        log(LogLevel.DEBUG, str(self.current_token))
 
         return self.current_token

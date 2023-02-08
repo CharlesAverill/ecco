@@ -3,8 +3,8 @@ from typing import List
 from ..scanning import Token, TokenType
 from ..utils import EccoFatalException
 from .llvmstackentry import LLVMStackEntry
-from .llvmvalue import LLVMValue, LLVMValueType
-from ..ecco import ARGS
+from .llvmvalue import LLVMValue, LLVMValueType, NumberType
+from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE
 from .translate import (
     LLVM_LOADED_REGISTERS,
     LLVM_OUT_FILE,
@@ -122,7 +122,7 @@ def llvm_ensure_registers_loaded(
             LLVM_OUT_FILE.writelines(
                 [
                     TAB,
-                    f"%{new_reg} = load i32, i32* %{registers_to_check[i].int_value}",
+                    f"%{new_reg} = load {registers_to_check[i].number_type}, {registers_to_check[i].number_type}* %{registers_to_check[i].int_value}",
                     NEWLINE,
                 ]
             )
@@ -131,6 +131,26 @@ def llvm_ensure_registers_loaded(
             loaded_registers.append(registers_to_check[i])
 
     return loaded_registers
+
+
+def llvm_int_resize(register: LLVMValue, new_width: NumberType):
+    op = "zext" if int(new_width) > int(register.number_type.byte_width) else "trunc"
+
+    out_reg_num = get_next_local_virtual_register()
+
+    LLVM_OUT_FILE.writelines(
+        [
+            TAB,
+            f"%{out_reg_num} = {op} i{register.number_type.byte_width} %{register.int_value} to {new_width}",
+            NEWLINE,
+        ]
+    )
+
+    LLVM_LOADED_REGISTERS.append(
+        LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_reg_num, new_width)
+    )
+
+    return LLVM_LOADED_REGISTERS[-1]
 
 
 def llvm_add(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
@@ -150,7 +170,7 @@ def llvm_add(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = add nsw i32 %{left_vr.int_value}, %{right_vr.int_value}",
+            f"%{out_vr} = add nsw {left_vr.number_type} %{left_vr.int_value}, %{right_vr.int_value}",
             NEWLINE,
         ]
     )
@@ -175,7 +195,7 @@ def llvm_sub(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = sub nsw i32 %{left_vr.int_value}, %{right_vr.int_value}",
+            f"%{out_vr} = sub nsw {left_vr.number_type} %{left_vr.int_value}, %{right_vr.int_value}",
             NEWLINE,
         ]
     )
@@ -200,7 +220,7 @@ def llvm_mul(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = mul nsw i32 %{left_vr.int_value}, %{right_vr.int_value}",
+            f"%{out_vr} = mul nsw {left_vr.number_type} %{left_vr.int_value}, %{right_vr.int_value}",
             NEWLINE,
         ]
     )
@@ -225,7 +245,7 @@ def llvm_div(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = udiv i32 %{left_vr.int_value}, %{right_vr.int_value}",
+            f"%{out_vr} = udiv {left_vr.number_type} %{left_vr.int_value}, %{right_vr.int_value}",
             NEWLINE,
         ]
     )
@@ -256,6 +276,11 @@ def llvm_binary_arithmetic(
     """
     out_vr: LLVMValue
 
+    if int(left_vr.number_type) < int(right_vr.number_type):
+        left_vr = llvm_int_resize(left_vr, right_vr.number_type)
+    elif int(left_vr.number_type) > int(right_vr.number_type):
+        right_vr = llvm_int_resize(right_vr, left_vr.number_type)
+
     if token.type == TokenType.PLUS:
         out_vr = llvm_add(left_vr, right_vr)
     elif token.type == TokenType.MINUS:
@@ -275,6 +300,43 @@ def llvm_binary_arithmetic(
     return out_vr
 
 
+def llvm_comparison(token: Token, left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
+    out_vr: LLVMValue
+
+    if int(left_vr.number_type) < int(right_vr.number_type):
+        left_vr = llvm_int_resize(left_vr, right_vr.number_type)
+    elif int(left_vr.number_type) > int(right_vr.number_type):
+        right_vr = llvm_int_resize(right_vr, left_vr.number_type)
+
+    llvm_cmp_operators: List[str] = ["eq", "ne", "slt", "sle", "sgt", "sge"]
+
+    try:
+        operator: str = llvm_cmp_operators[int(token.type) - int(TokenType.EQ)]
+    except IndexError:
+        raise EccoFatalException(
+            "",
+            f'llvm_comparison received non-comparison-operator Token "{str(token.type)}"',
+        )
+
+    out_vr = LLVMValue(
+        LLVMValueType.VIRTUAL_REGISTER,
+        get_next_local_virtual_register(),
+        NumberType.BOOL,
+    )
+
+    LLVM_OUT_FILE.writelines(
+        [
+            TAB,
+            f"%{out_vr.int_value} = icmp {operator} {left_vr.number_type} %{left_vr.int_value}, %{right_vr.int_value}",
+            NEWLINE,
+        ]
+    )
+
+    LLVM_LOADED_REGISTERS.append(out_vr)
+
+    return out_vr
+
+
 def llvm_store_constant(value: int) -> LLVMValue:
     """Store a constant value
 
@@ -285,18 +347,20 @@ def llvm_store_constant(value: int) -> LLVMValue:
         LLVMValue: LLVMValue containing the register number of the stored
                    constant. This register is NOT confirmed to be loaded
     """
-    from .translate import update_free_register_count, get_free_register_count
+    from .translate import LLVM_FREE_REGISTERS
 
+    store_reg = LLVM_FREE_REGISTERS.pop()
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"store i32 {value}, i32* %{update_free_register_count(-1)}",
+            f"store i32 {value}, i32* %{store_reg}",
             NEWLINE,
         ]
     )
+
     return LLVMValue(
         LLVMValueType.VIRTUAL_REGISTER,
-        get_free_register_count() + 1,
+        store_reg,
     )
 
 
@@ -328,17 +392,28 @@ def llvm_load_global(name: str) -> LLVMValue:
     return LLVM_LOADED_REGISTERS[-1]
 
 
-def llvm_store_global(name: str, rvalue_reg: int):
+def llvm_store_global(name: str, rvalue: LLVMValue):
     """Store a value into a global variable
 
     Args:
         name (str): Global variable to store into
         rvalue_reg (int): Register containing the contents to store into the variable
     """
-    rvalue_reg = llvm_ensure_registers_loaded(
-        [LLVMValue(LLVMValueType.VIRTUAL_REGISTER, rvalue_reg)]
-    )[0].int_value
-    LLVM_OUT_FILE.writelines([TAB, f"store i32 %{rvalue_reg}, i32* @{name}", NEWLINE])
+    ste = GLOBAL_SYMBOL_TABLE[name]
+    if ste:
+        if rvalue.number_type != ste.number_type:
+            rvalue = llvm_int_resize(rvalue, ste.number_type)
+    else:
+        raise EccoFatalException(
+            "",
+            f"Undeclared identifier {name} was allowed to propagate to LLVM generation",
+        )
+
+    rvalue.int_value = llvm_ensure_registers_loaded([rvalue])[0].int_value
+
+    LLVM_OUT_FILE.writelines(
+        [TAB, f"store i32 %{rvalue.int_value}, i32* @{name}", NEWLINE]
+    )
 
 
 def llvm_stack_allocation(entries: List[LLVMStackEntry]):
@@ -370,7 +445,7 @@ def llvm_print_int(reg: LLVMValue):
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @print_int_fstring , i32 0, i32 0), i32 %{reg.int_value})",
+            f"call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @print_int_fstring , i32 0, i32 0), {reg.number_type} %{reg.int_value})",
             NEWLINE,
         ]
     )

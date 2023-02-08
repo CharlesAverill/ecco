@@ -1,5 +1,16 @@
-int fred;
-int jim;
-fred = 5;
-jim = 12;
-print fred + jim;
+print 7 == 7; 
+print 7 != 9; 
+print 7 < 9;  
+print 7 <= 9;
+
+print 9 > 7;
+print 9 >= 7; 
+
+int x;
+x = 7 >= 7; 
+print x;
+x = 7 <= 7; 
+print x;
+
+// This is the same as (1 > 1) < 2
+print 1 > 1 < 2;

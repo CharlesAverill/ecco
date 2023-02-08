@@ -10,7 +10,7 @@ import tempfile
 LLVM_OUT_FILE: TextIO
 LLVM_GLOBALS_FILE: TextIO
 LLVM_VIRTUAL_REGISTER_NUMBER: int
-LLVM_FREE_REGISTER_COUNT: int
+LLVM_FREE_REGISTERS: List[int]
 LLVM_LOADED_REGISTERS: List[LLVMValue]
 
 
@@ -21,7 +21,7 @@ def translate_init():
         EccoFileError: Raised if an error occurs while opening the output LLVM
                        file
     """
-    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER, LLVM_FREE_REGISTER_COUNT, LLVM_LOADED_REGISTERS, LLVM_GLOBALS_FILE
+    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER, LLVM_FREE_REGISTERS, LLVM_LOADED_REGISTERS, LLVM_GLOBALS_FILE
     from ..ecco import ARGS
 
     try:
@@ -36,7 +36,7 @@ def translate_init():
 
     LLVM_VIRTUAL_REGISTER_NUMBER = 0
 
-    LLVM_FREE_REGISTER_COUNT = 0
+    LLVM_FREE_REGISTERS = []
 
     LLVM_LOADED_REGISTERS = []
 
@@ -45,16 +45,6 @@ def get_next_local_virtual_register() -> int:
     global LLVM_VIRTUAL_REGISTER_NUMBER
     LLVM_VIRTUAL_REGISTER_NUMBER += 1
     return LLVM_VIRTUAL_REGISTER_NUMBER
-
-
-def update_free_register_count(delta: int) -> int:
-    global LLVM_FREE_REGISTER_COUNT
-    LLVM_FREE_REGISTER_COUNT += delta
-    return LLVM_FREE_REGISTER_COUNT - delta
-
-
-def get_free_register_count() -> int:
-    return update_free_register_count(0)
 
 
 def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStackEntry]:
@@ -68,6 +58,7 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
         List[LLVMStackEntry]: List of LLVMStackEntries describing required
                               allocated registers
     """
+    global LLVM_FREE_REGISTERS
     from .llvm import get_next_local_virtual_register
 
     left_entry: List[LLVMStackEntry] = []
@@ -88,13 +79,13 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
             ),
             4,
         )
-        update_free_register_count(1)
+        LLVM_FREE_REGISTERS.append(out_entry.register.int_value)
         return [out_entry]
 
     return []
 
 
-def ast_to_llvm(root: ASTNode, rvalue_register_number: int) -> LLVMValue:
+def ast_to_llvm(root: ASTNode, rvalue: LLVMValue) -> LLVMValue:
     """Function to traverse an AST and generate LLVM code for it
 
     Args:
@@ -114,29 +105,39 @@ def ast_to_llvm(root: ASTNode, rvalue_register_number: int) -> LLVMValue:
         llvm_load_global,
         llvm_store_global,
         llvm_print_int,
+        llvm_comparison,
     )
 
     left_vr: LLVMValue
     right_vr: LLVMValue
 
     if root.left:
-        left_vr = ast_to_llvm(root.left, 0)
+        left_vr = ast_to_llvm(root.left, LLVMValue(LLVMValueType.NONE))
     if root.right:
-        right_vr = ast_to_llvm(root.right, left_vr.int_value)
+        right_vr = ast_to_llvm(root.right, left_vr)
 
+    # Binary arithmetic
     if root.token.is_binary_arithmetic():
         left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr])
         return llvm_binary_arithmetic(root.token, left_vr, right_vr)
+    # Comparison operators
+    if root.token.is_comparison_operator():
+        left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr])
+        return llvm_comparison(root.token, left_vr, right_vr)
+    # Terminal Node
     elif root.token.is_terminal():
         if root.token.type == TokenType.INTEGER_LITERAL:
             return llvm_store_constant(int(root.token.value))
+    # Rvalue Identifier
     elif root.token.type == TokenType.IDENTIFIER:
         return llvm_load_global(str(root.token.value))
+    # Lvalue Identifier
     elif root.token.type == TokenType.LEFTVALUE_IDENTIFIER:
-        llvm_store_global(str(root.token.value), rvalue_register_number)
-        return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, rvalue_register_number)
+        llvm_store_global(str(root.token.value), rvalue)
+        return rvalue
     elif root.token.type == TokenType.ASSIGN:
-        return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, rvalue_register_number)
+        return rvalue
+    # Print statement
     elif root.token.type == TokenType.PRINT:
         llvm_print_int(left_vr)
     else:
@@ -165,7 +166,7 @@ def generate_llvm() -> None:
     for root in parse_statements():
         llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
 
-        ast_to_llvm(root, 0)
+        ast_to_llvm(root, LLVMValue(LLVMValueType.NONE))
 
     llvm_postamble()
 

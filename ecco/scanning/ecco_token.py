@@ -5,18 +5,26 @@ from typing import List, Union
 class TokenType(Enum):
     """An Enum class to store types of Tokens"""
 
-    UNKNOWN_TOKEN = "unknown token"
+    UNKNOWN_TOKEN = "%unknown token"
 
-    EOF = "EOF"
+    EOF = "%EOF"
 
-    # Operators
+    # Arithmetic Operators
     PLUS = "+"
     MINUS = "-"
     STAR = "*"
     SLASH = "/"
 
+    # Comparison Operators
+    EQ = "=="
+    NEQ = "!="
+    LT = "<"
+    LEQ = "<="
+    GT = ">"
+    GEQ = ">="
+
     # Literals
-    INTEGER_LITERAL = "integer literal"
+    INTEGER_LITERAL = "%integer literal"
 
     # Types
     INT = "int"
@@ -29,13 +37,38 @@ class TokenType(Enum):
 
     # Miscellaneous
     SEMICOLON = ";"
-    IDENTIFIER = "identifier"
-    LEFTVALUE_IDENTIFIER = "leftvalue identifier"
+    IDENTIFIER = "%identifier"
+    LEFTVALUE_IDENTIFIER = "%leftvalue identifier"
+
+    # TODO : Update from_string to handle collision between == and =
 
     @staticmethod
-    def from_string(s: str) -> "TokenType":
+    def from_string(c: str, next_char: str) -> "TokenType":
+        # This is a temporary tactic we'll use to check length-2 tokens that
+        # collide with other tokens, like == and =. This only works with
+        # tokens that start with non-identifier characters. When we add
+        # if and for etc., we'll have to think of something smarter
+        shortcircuit_token = None
+        if c == "=" and next_char == "=":
+            shortcircuit_token = TokenType.EQ
+        elif c == "!" and next_char == "=":
+            shortcircuit_token = TokenType.NEQ
+        elif c == "<" and next_char == "=":
+            shortcircuit_token = TokenType.LEQ
+        elif c == ">" and next_char == "=":
+            shortcircuit_token = TokenType.GEQ
+
+        if not shortcircuit_token:
+            if next_char:
+                from ..ecco import GLOBAL_SCANNER
+
+                GLOBAL_SCANNER.put_back(next_char)
+        else:
+            return shortcircuit_token
+
+        # Regular single-length token checking
         for t_type in TokenType:
-            if str(t_type) == s:
+            if str(t_type) == c:
                 return t_type
         return TokenType.UNKNOWN_TOKEN
 
@@ -66,6 +99,9 @@ class Token:
     def is_binary_arithmetic(self) -> bool:
         return int(TokenType.PLUS) <= int(self.type) <= int(TokenType.SLASH)
 
+    def is_comparison_operator(self) -> bool:
+        return int(TokenType.EQ) <= int(self.type) <= int(TokenType.GEQ)
+
     def is_terminal(self) -> bool:
         return (
             int(TokenType.INTEGER_LITERAL)
@@ -76,6 +112,11 @@ class Token:
     def __repr__(self):
         return f"Token:\n\tTYPE = [{str(self.type)}] ({int(self.type)})" + (
             f"\n\tVALUE = {self.value}"
-            if self.type == TokenType.INTEGER_LITERAL
+            if self.type
+            in [
+                TokenType.INTEGER_LITERAL,
+                TokenType.IDENTIFIER,
+                TokenType.LEFTVALUE_IDENTIFIER,
+            ]
             else ""
         )

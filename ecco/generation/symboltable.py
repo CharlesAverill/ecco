@@ -1,5 +1,7 @@
 from typing import Optional, List, Callable
 from abc import ABC, abstractmethod
+from .llvmvalue import NumberType
+
 
 # https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV_offset_basis
 FNV_OFFSET_BASIS = 0xCBF29CE484222325
@@ -8,9 +10,10 @@ FNV_PRIME = 0x100000001B3
 
 
 class SymbolTableEntry:
-    def __init__(self, _identifier_name: str, _value: int):
+    def __init__(self, _identifier_name: str, _value: int, nt: NumberType):
         self.identifier_name: str = _identifier_name
         self.value: int = _value
+        self.number_type: NumberType = nt
 
         self.next: Optional[SymbolTableEntry] = None
 

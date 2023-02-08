@@ -7,9 +7,9 @@ from ..utils.ecco_logging import EccoInternalTypeError
 class LLVMValueType(Enum):
     """An Enum class to store types of LLVMValues"""
 
-    NONE = "LLVMValue (None)"
+    NONE = "None"
 
-    VIRTUAL_REGISTER = "LLVMValue (Virtual Register)"
+    VIRTUAL_REGISTER = "Virtual Register"
 
     def __str__(self) -> str:
         return self.value
@@ -18,8 +18,42 @@ class LLVMValueType(Enum):
         return LLVMValueType._member_names_.index(self._name_)
 
 
+class NumberType(Enum):
+    BOOL = "i1"
+    CHAR = "i8"
+    SHORT = "i16"
+    INT = "i32"
+    LONG = "i64"
+
+    @property
+    def byte_width(self) -> int:
+        return max(1, int(self.value[1:]) // 4)
+
+    @staticmethod
+    def from_int(i) -> "NumberType":
+        for t in NumberType:
+            if int(t) == i:
+                return t
+        raise EccoInternalTypeError(
+            f"one of {[int(t) for t in NumberType]}",
+            str(i),
+            "generation/llvm.py:NumberType.from_int",
+        )
+
+    def __str__(self) -> str:
+        return self.value
+
+    def __int__(self) -> int:
+        return NumberType._member_names_.index(self._name_)
+
+
 class LLVMValue:
-    def __init__(self, lvt: LLVMValueType, value: Union[int, None]):
+    def __init__(
+        self,
+        lvt: LLVMValueType,
+        value: Union[int, None] = None,
+        nt: NumberType = NumberType.INT,
+    ):
         """Stores data about various kinds of LLVM Values
 
         Args:
@@ -31,6 +65,7 @@ class LLVMValue:
         """
         self.value_type: LLVMValueType = lvt
         self.int_value: int = 0
+        self.number_type: NumberType = nt
 
         if self.value_type == LLVMValueType.VIRTUAL_REGISTER:
             if type(value) != int:
@@ -45,4 +80,4 @@ class LLVMValue:
         append: str = ""
         if self.value_type == LLVMValueType.VIRTUAL_REGISTER:
             append = f": %{self.int_value}"
-        return f"LLVMValue ({self.value_type})" + append
+        return f"LLVMValue ({self.value_type} {self.number_type})" + append

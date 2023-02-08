@@ -11,6 +11,12 @@ OPERATOR_PRECEDENCE: Dict[TokenType, int] = {
     TokenType.MINUS: 12,
     TokenType.STAR: 13,
     TokenType.SLASH: 13,
+    TokenType.EQ: 10,
+    TokenType.NEQ: 10,
+    TokenType.LT: 11,
+    TokenType.LEQ: 11,
+    TokenType.GT: 11,
+    TokenType.GEQ: 11,
 }
 
 

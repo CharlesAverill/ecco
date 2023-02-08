@@ -12,6 +12,7 @@ def declaration_statement() -> None:
     from .statement import match_token
     from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
     from ..generation.llvm import llvm_declare_global
+    from ..generation import NumberType
 
     match_token(TokenType.INT)
 
@@ -24,6 +25,6 @@ def declaration_statement() -> None:
             "ecco/parsing/declaration.py:declaration_statement",
         )
 
-    GLOBAL_SYMBOL_TABLE.update(ident, SymbolTableEntry(ident, 0))
+    GLOBAL_SYMBOL_TABLE.update(ident, SymbolTableEntry(ident, 0, NumberType.INT))
 
     llvm_declare_global(ident, 0)
