@@ -1,4 +1,3 @@
-# import pkg_resources
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
