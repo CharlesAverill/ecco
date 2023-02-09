@@ -90,6 +90,8 @@ def ast_to_llvm(root: ASTNode, rvalue: LLVMValue) -> LLVMValue:
 
     Args:
         root (ASTNode): Root ASTNode of program to generate
+        rvalue (LLVMValue): Value passed from left-branch traversals to the 
+                            right branch
 
     Raises:
         EccoFatalException: If an unexpected Token is encountered
