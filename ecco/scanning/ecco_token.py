@@ -33,14 +33,18 @@ class TokenType(Enum):
     ASSIGN = "="
 
     # Keywords
+    ELSE = "else"
+    IF = "if"
     PRINT = "print"
 
     # Miscellaneous
     SEMICOLON = ";"
     IDENTIFIER = "%identifier"
     LEFTVALUE_IDENTIFIER = "%leftvalue identifier"
-
-    # TODO : Update from_string to handle collision between == and =
+    LEFT_BRACE = "{"
+    RIGHT_BRACE = "}"
+    LEFT_PARENTHESIS = "("
+    RIGHT_PARENTHESIS = ")"
 
     @staticmethod
     def from_string(c: str, next_char: str) -> "TokenType":

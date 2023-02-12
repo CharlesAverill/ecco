@@ -47,6 +47,8 @@ def parse_statements() -> Generator[ASTNode, None, None]:
     tree: Optional[ASTNode] = None
     match_semicolon: bool = True
 
+    match_token(TokenType.LEFT_BRACE)
+
     while GLOBAL_SCANNER.current_token.type != TokenType.EOF:
         if GLOBAL_SCANNER.current_token.type == TokenType.PRINT:
             tree = print_statement()
