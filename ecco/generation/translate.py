@@ -256,10 +256,10 @@ def generate_llvm() -> None:
 
     llvm_preamble()
 
-    for root in parse_statements():
-        llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
+    root = parse_statements()
+    llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
 
-        ast_to_llvm(root, LLVMValue(LLVMValueType.NONE), root.type)
+    ast_to_llvm(root, LLVMValue(LLVMValueType.NONE), root.type)
 
     llvm_postamble()
 
