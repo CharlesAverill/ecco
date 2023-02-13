@@ -2,7 +2,7 @@ from .ecco_ast import ASTNode
 from ..scanning import TokenType, Token
 from .expression import parse_binary_expression
 from ..utils import EccoSyntaxError, EccoFatalException
-from typing import Generator, Optional, Union
+from typing import Optional, Union
 from .declaration import declaration_statement
 from .assignment import assignment_statement
 
@@ -58,13 +58,13 @@ def if_statement() -> ASTNode:
     match_token(TokenType.RIGHT_PARENTHESIS)
 
     # Now we need to parse the code that will execute if the IF operand evaluates to 1
-    conditional_block: ASTNode = next(parse_statements())
+    conditional_block: ASTNode = parse_statements()
 
     conditional_converse_block: Optional[ASTNode] = None
 
     if GLOBAL_SCANNER.current_token.type == TokenType.ELSE:
         match_token(TokenType.ELSE)
-        conditional_converse_block = next(parse_statements())
+        conditional_converse_block = parse_statements()
 
     return ASTNode(
         Token(TokenType.IF),
@@ -74,7 +74,7 @@ def if_statement() -> ASTNode:
     )
 
 
-def parse_statements() -> Generator[ASTNode, None, None]:
+def parse_statements() -> ASTNode:
     from ..ecco import GLOBAL_SCANNER
 
     root: ASTNode = ASTNode(Token(TokenType.UNKNOWN_TOKEN))
@@ -105,10 +105,8 @@ def parse_statements() -> Generator[ASTNode, None, None]:
                 f'Unexpected token "{str(GLOBAL_SCANNER.current_token.type)}"'
             )
 
-        if return_left:
-            if left:
-                yield left
-            break
+        if left and return_left:
+            return left
 
         if match_semicolon:
             match_token(TokenType.SEMICOLON)
