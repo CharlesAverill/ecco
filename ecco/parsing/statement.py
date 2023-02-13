@@ -94,6 +94,35 @@ def while_statement() -> ASTNode:
     return ASTNode(Token(TokenType.WHILE), condition_tree, None, conditional_block)
 
 
+def for_statement() -> ASTNode:
+    match_token(TokenType.FOR)
+    match_token(TokenType.LEFT_PARENTHESIS)
+
+    for_preamble: ASTNode = assignment_statement()
+    match_token(TokenType.SEMICOLON)
+
+    # Get the condition tree
+    condition_tree: ASTNode = parse_binary_expression(0)
+    if not condition_tree.token.is_comparison_operator():
+        raise EccoFatalException(
+            f"Branch statements currently require a conditional operand, not {condition_tree.token}"
+        )
+    match_token(TokenType.SEMICOLON)
+
+    for_postamble: ASTNode = assignment_statement()
+    match_token(TokenType.RIGHT_PARENTHESIS)
+
+    conditional_block: ASTNode = parse_statements()
+
+    out: ASTNode = ASTNode(
+        Token(TokenType.AST_GLUE), conditional_block, None, for_postamble
+    )
+    out = ASTNode(Token(TokenType.WHILE), condition_tree, None, out)
+    out = ASTNode(Token(TokenType.AST_GLUE), for_preamble, None, out)
+
+    return out
+
+
 def parse_statements() -> ASTNode:
     from ..ecco import GLOBAL_SCANNER
 
@@ -118,6 +147,9 @@ def parse_statements() -> ASTNode:
             match_semicolon = False
         elif GLOBAL_SCANNER.current_token.type == TokenType.WHILE:
             root = while_statement()
+            match_semicolon = False
+        elif GLOBAL_SCANNER.current_token.type == TokenType.FOR:
+            root = for_statement()
             match_semicolon = False
         elif GLOBAL_SCANNER.current_token.type == TokenType.RIGHT_BRACE:
             match_token(TokenType.RIGHT_BRACE)

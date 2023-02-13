@@ -37,6 +37,7 @@ class TokenType(Enum):
     # Keywords
     ELSE = "else"
     IF = "if"
+    FOR = "for"
     PRINT = "print"
     WHILE = "while"
 
