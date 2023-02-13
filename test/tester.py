@@ -8,6 +8,7 @@ def _tester(test_name: str, expected: str):
     subprocess.call(["clang", f"{test_name}.ll"])
     actual: str = subprocess.check_output(["./a.out"]).decode()
     
+    # I get this deprecation warning so I'm just manually filtering it out
     actual_lines = actual.splitlines()
     while len(actual_lines) and "SetuptoolsDeprecationWarning" in actual_lines[0]:
         actual_lines = actual_lines[1:]

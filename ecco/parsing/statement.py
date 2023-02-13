@@ -74,6 +74,26 @@ def if_statement() -> ASTNode:
     )
 
 
+def while_statement() -> ASTNode:
+    # Match some syntax
+    match_token(TokenType.WHILE)
+    match_token(TokenType.LEFT_PARENTHESIS)
+
+    # Get the condition tree
+    condition_tree: ASTNode = parse_binary_expression(0)
+    if not condition_tree.token.is_comparison_operator():
+        raise EccoFatalException(
+            f"Branch statements currently require a conditional operand, not {condition_tree.token}"
+        )
+
+    match_token(TokenType.RIGHT_PARENTHESIS)
+
+    # Now we need to parse the code that will execute if the IF operand evaluates to 1
+    conditional_block: ASTNode = next(parse_statements())
+
+    return ASTNode(Token(TokenType.WHILE), condition_tree, None, conditional_block)
+
+
 def parse_statements() -> Generator[ASTNode, None, None]:
     from ..ecco import GLOBAL_SCANNER
 
@@ -95,6 +115,9 @@ def parse_statements() -> Generator[ASTNode, None, None]:
             root = assignment_statement()
         elif GLOBAL_SCANNER.current_token.type == TokenType.IF:
             root = if_statement()
+            match_semicolon = False
+        elif GLOBAL_SCANNER.current_token.type == TokenType.WHILE:
+            root = while_statement()
             match_semicolon = False
         elif GLOBAL_SCANNER.current_token.type == TokenType.RIGHT_BRACE:
             match_token(TokenType.RIGHT_BRACE)

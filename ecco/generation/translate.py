@@ -135,6 +135,25 @@ def if_ast_to_llvm(root: ASTNode) -> LLVMValue:
     return LLVMValue(LLVMValueType.NONE)
 
 
+def while_ast_to_llvm(root: ASTNode) -> LLVMValue:
+    from .llvm import get_next_label, llvm_jump, llvm_label
+
+    condition_label: LLVMValue = get_next_label()
+    end_label: LLVMValue = get_next_label()
+
+    # We have to jump because LLVM doesn't allow for any fallthroughs
+    llvm_jump(condition_label)
+    llvm_label(condition_label)
+
+    ast_to_llvm(root.left, end_label, root.type)
+    ast_to_llvm(root.right, LLVMValue(LLVMValueType.NONE), root.type)
+
+    llvm_jump(condition_label)
+    llvm_label(end_label)
+
+    return LLVMValue(LLVMValueType.NONE)
+
+
 def ast_to_llvm(
     root: Optional[ASTNode], rvalue: LLVMValue, parent_operation: TokenType
 ) -> LLVMValue:
@@ -174,6 +193,8 @@ def ast_to_llvm(
     # children generated in the standard manner
     if root.type == TokenType.IF:
         return if_ast_to_llvm(root)
+    elif root.type == TokenType.WHILE:
+        return while_ast_to_llvm(root)
     elif root.type == TokenType.AST_GLUE:
         ast_to_llvm(root.left, LLVMValue(LLVMValueType.NONE), root.type)
         ast_to_llvm(root.middle, LLVMValue(LLVMValueType.NONE), root.type)
@@ -192,7 +213,7 @@ def ast_to_llvm(
     # Comparison operators
     if root.token.is_comparison_operator():
         left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr])
-        if parent_operation == TokenType.IF:
+        if parent_operation in [TokenType.IF, TokenType.WHILE]:
             return llvm_compare_jump(root.token, left_vr, right_vr, rvalue)
         else:
             return llvm_comparison(root.token, left_vr, right_vr)

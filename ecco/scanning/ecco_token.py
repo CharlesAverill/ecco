@@ -38,6 +38,7 @@ class TokenType(Enum):
     ELSE = "else"
     IF = "if"
     PRINT = "print"
+    WHILE = "while"
 
     # Miscellaneous
     SEMICOLON = ";"
