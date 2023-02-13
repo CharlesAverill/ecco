@@ -33,7 +33,7 @@ def parse_terminal_node() -> ASTNode:
 
     out: ASTNode
     if GLOBAL_SCANNER.current_token.type == TokenType.INTEGER_LITERAL:
-        out = ASTNode(GLOBAL_SCANNER.current_token, None, None)
+        out = ASTNode(GLOBAL_SCANNER.current_token, None, None, None)
     elif GLOBAL_SCANNER.current_token.type == TokenType.IDENTIFIER:
         ident: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[
             str(GLOBAL_SCANNER.current_token.value)
@@ -43,7 +43,9 @@ def parse_terminal_node() -> ASTNode:
                 f'Undeclared variable "{GLOBAL_SCANNER.current_token.value}"'
             )
 
-        out = ASTNode(Token(TokenType.IDENTIFIER, ident.identifier_name), None, None)
+        out = ASTNode(
+            Token(TokenType.IDENTIFIER, ident.identifier_name), None, None, None
+        )
     elif GLOBAL_SCANNER.current_token.type == TokenType.EOF:
         raise EccoEOFMissingSemicolonError()
     else:
@@ -96,7 +98,7 @@ def parse_binary_expression(previous_token_precedence: int) -> ASTNode:
 
     # Reached the end of a statement
     node_type = GLOBAL_SCANNER.current_token.type
-    if node_type == TokenType.SEMICOLON:
+    if node_type in [TokenType.SEMICOLON, TokenType.RIGHT_PARENTHESIS]:
         return left
     elif node_type == TokenType.EOF:
         raise EccoEOFMissingSemicolonError()
@@ -111,11 +113,11 @@ def parse_binary_expression(previous_token_precedence: int) -> ASTNode:
         right = parse_binary_expression(OPERATOR_PRECEDENCE[node_type])
 
         # Join right subtree with current left subtree
-        left = ASTNode(Token(node_type), left, right)
+        left = ASTNode(Token(node_type), left, None, right)
 
         # Update node_type and check for end of statement
         node_type = GLOBAL_SCANNER.current_token.type
-        if node_type == TokenType.SEMICOLON:
+        if node_type in [TokenType.SEMICOLON, TokenType.RIGHT_PARENTHESIS]:
             break
         elif node_type == TokenType.EOF:
             raise EccoEOFMissingSemicolonError()

@@ -9,6 +9,8 @@ class TokenType(Enum):
 
     EOF = "%EOF"
 
+    AST_GLUE = "%AST glue"
+
     # Arithmetic Operators
     PLUS = "+"
     MINUS = "-"

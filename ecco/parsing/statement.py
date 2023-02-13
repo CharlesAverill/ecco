@@ -1,7 +1,7 @@
 from .ecco_ast import ASTNode
 from ..scanning import TokenType, Token
 from .expression import parse_binary_expression
-from ..utils import EccoSyntaxError
+from ..utils import EccoSyntaxError, EccoFatalException
 from typing import Generator, Optional, Union
 from .declaration import declaration_statement
 from .assignment import assignment_statement
@@ -36,35 +36,85 @@ def print_statement() -> ASTNode:
 
     tree = parse_binary_expression(0)
 
-    tree = ASTNode(Token(TokenType.PRINT), tree, None)
+    tree = ASTNode(Token(TokenType.PRINT), tree, None, None)
 
     return tree
+
+
+def if_statement() -> ASTNode:
+    from ..ecco import GLOBAL_SCANNER
+
+    # Match some syntax
+    match_token(TokenType.IF)
+    match_token(TokenType.LEFT_PARENTHESIS)
+
+    # Get the condition tree
+    condition_tree: ASTNode = parse_binary_expression(0)
+    if not condition_tree.token.is_comparison_operator():
+        raise EccoFatalException(
+            f"Branch statements currently require a conditional operand, not {condition_tree.token}"
+        )
+
+    match_token(TokenType.RIGHT_PARENTHESIS)
+
+    # Now we need to parse the code that will execute if the IF operand evaluates to 1
+    conditional_block: ASTNode = next(parse_statements())
+
+    conditional_converse_block: Optional[ASTNode] = None
+
+    if GLOBAL_SCANNER.current_token.type == TokenType.ELSE:
+        match_token(TokenType.ELSE)
+        conditional_converse_block = next(parse_statements())
+
+    return ASTNode(
+        Token(TokenType.IF),
+        condition_tree,
+        conditional_block,
+        conditional_converse_block,
+    )
 
 
 def parse_statements() -> Generator[ASTNode, None, None]:
     from ..ecco import GLOBAL_SCANNER
 
-    tree: Optional[ASTNode] = None
-    match_semicolon: bool = True
+    root: ASTNode = ASTNode(Token(TokenType.UNKNOWN_TOKEN))
+    left: Optional[ASTNode] = None
 
     match_token(TokenType.LEFT_BRACE)
 
-    while GLOBAL_SCANNER.current_token.type != TokenType.EOF:
+    while True:
+        match_semicolon: bool = True
+        return_left: bool = False
+
         if GLOBAL_SCANNER.current_token.type == TokenType.PRINT:
-            tree = print_statement()
+            root = print_statement()
         elif GLOBAL_SCANNER.current_token.type == TokenType.INT:
             declaration_statement()
+            root.token.type = TokenType.UNKNOWN_TOKEN
         elif GLOBAL_SCANNER.current_token.type == TokenType.IDENTIFIER:
-            tree = assignment_statement()
+            root = assignment_statement()
+        elif GLOBAL_SCANNER.current_token.type == TokenType.IF:
+            root = if_statement()
+            match_semicolon = False
+        elif GLOBAL_SCANNER.current_token.type == TokenType.RIGHT_BRACE:
+            match_token(TokenType.RIGHT_BRACE)
+            match_semicolon = False
+            return_left = True
         else:
             raise EccoSyntaxError(
-                'Unexpected token "{str(GLOBAL_SCANNER.current_token.type)}"'
+                f'Unexpected token "{str(GLOBAL_SCANNER.current_token.type)}"'
             )
+
+        if return_left:
+            if left:
+                yield left
+            break
 
         if match_semicolon:
             match_token(TokenType.SEMICOLON)
 
-        if tree:
-            yield tree
-
-        tree = None
+        if root.type != TokenType.UNKNOWN_TOKEN:
+            if not left:
+                left = root
+            else:
+                left = ASTNode(Token(TokenType.AST_GLUE), left, None, root)

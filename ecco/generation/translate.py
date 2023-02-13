@@ -1,8 +1,14 @@
-from typing import List, TextIO
+from typing import List, TextIO, Optional
 
 from ..parsing import ASTNode
 from ..scanning import TokenType
-from ..utils import EccoFatalException, EccoFileError, LogLevel, log
+from ..utils import (
+    EccoFatalException,
+    EccoFileError,
+    LogLevel,
+    log,
+    EccoInternalTypeError,
+)
 from .llvmstackentry import LLVMStackEntry
 from .llvmvalue import LLVMValue, LLVMValueType
 import tempfile
@@ -12,6 +18,7 @@ LLVM_GLOBALS_FILE: TextIO
 LLVM_VIRTUAL_REGISTER_NUMBER: int
 LLVM_FREE_REGISTERS: List[int]
 LLVM_LOADED_REGISTERS: List[LLVMValue]
+LLVM_LABEL_INDEX: int
 
 
 def translate_init():
@@ -21,7 +28,7 @@ def translate_init():
         EccoFileError: Raised if an error occurs while opening the output LLVM
                        file
     """
-    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER, LLVM_FREE_REGISTERS, LLVM_LOADED_REGISTERS, LLVM_GLOBALS_FILE
+    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER, LLVM_FREE_REGISTERS, LLVM_LOADED_REGISTERS, LLVM_GLOBALS_FILE, LLVM_LABEL_INDEX
     from ..ecco import ARGS
 
     try:
@@ -39,6 +46,14 @@ def translate_init():
     LLVM_FREE_REGISTERS = []
 
     LLVM_LOADED_REGISTERS = []
+
+    LLVM_LABEL_INDEX = 0
+
+
+def get_next_label() -> LLVMValue:
+    global LLVM_LABEL_INDEX
+    LLVM_LABEL_INDEX += 1
+    return LLVMValue(LLVMValueType.LABEL, LLVM_LABEL_INDEX)
 
 
 def get_next_local_virtual_register() -> int:
@@ -71,7 +86,7 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
             right_entry = determine_binary_expression_stack_allocation(root.right)
 
         return left_entry + right_entry
-    elif root.token.type in [TokenType.INTEGER_LITERAL, TokenType.IDENTIFIER]:
+    elif root.type in [TokenType.INTEGER_LITERAL, TokenType.IDENTIFIER]:
         out_entry = LLVMStackEntry(
             LLVMValue(
                 LLVMValueType.VIRTUAL_REGISTER,
@@ -85,13 +100,51 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
     return []
 
 
-def ast_to_llvm(root: ASTNode, rvalue: LLVMValue) -> LLVMValue:
+def if_ast_to_llvm(root: ASTNode) -> LLVMValue:
+    from .llvm import get_next_label, llvm_jump, llvm_label
+
+    end_label: LLVMValue
+
+    false_label: LLVMValue = get_next_label()
+    if root.right:
+        end_label = get_next_label()
+
+    if root.left and root.middle:
+        ast_to_llvm(root.left, false_label, root.type)
+        ast_to_llvm(root.middle, LLVMValue(LLVMValueType.NONE), root.type)
+    else:
+        raise EccoInternalTypeError(
+            "ASTNode with left, middle, and right children",
+            "ASTNode missing left or middle child",
+            "translate.py:if_ast_to_llvm",
+        )
+
+    if root.right:
+        llvm_jump(end_label)
+    else:
+        llvm_jump(false_label)
+
+    llvm_label(false_label)
+
+    if root.right:
+        ast_to_llvm(root.right, LLVMValue(LLVMValueType.NONE), root.type)
+
+        llvm_jump(end_label)
+        llvm_label(end_label)
+
+    return LLVMValue(LLVMValueType.NONE)
+
+
+def ast_to_llvm(
+    root: Optional[ASTNode], rvalue: LLVMValue, parent_operation: TokenType
+) -> LLVMValue:
     """Function to traverse an AST and generate LLVM code for it
 
     Args:
         root (ASTNode): Root ASTNode of program to generate
-        rvalue (LLVMValue): Value passed from left-branch traversals to the 
+        rvalue (LLVMValue): Value passed from left-branch traversals to the
                             right branch
+        parent_operation (TokenType): TokenType of parent of root
 
     Raises:
         EccoFatalException: If an unexpected Token is encountered
@@ -100,6 +153,9 @@ def ast_to_llvm(root: ASTNode, rvalue: LLVMValue) -> LLVMValue:
         LLVMValue: LLVMValue containing register number of expression value to
                    print
     """
+    if not root:
+        return LLVMValue(LLVMValueType.NONE)
+
     from .llvm import (
         llvm_binary_arithmetic,
         llvm_ensure_registers_loaded,
@@ -108,15 +164,26 @@ def ast_to_llvm(root: ASTNode, rvalue: LLVMValue) -> LLVMValue:
         llvm_store_global,
         llvm_print_int,
         llvm_comparison,
+        llvm_compare_jump,
     )
 
     left_vr: LLVMValue
     right_vr: LLVMValue
 
+    # Special kinds of TokenTypes that shouldn't have their left and right
+    # children generated in the standard manner
+    if root.type == TokenType.IF:
+        return if_ast_to_llvm(root)
+    elif root.type == TokenType.AST_GLUE:
+        ast_to_llvm(root.left, LLVMValue(LLVMValueType.NONE), root.type)
+        ast_to_llvm(root.middle, LLVMValue(LLVMValueType.NONE), root.type)
+        ast_to_llvm(root.right, LLVMValue(LLVMValueType.NONE), root.type)
+        return LLVMValue(LLVMValueType.NONE)
+
     if root.left:
-        left_vr = ast_to_llvm(root.left, LLVMValue(LLVMValueType.NONE))
+        left_vr = ast_to_llvm(root.left, LLVMValue(LLVMValueType.NONE), root.type)
     if root.right:
-        right_vr = ast_to_llvm(root.right, left_vr)
+        right_vr = ast_to_llvm(root.right, left_vr, root.type)
 
     # Binary arithmetic
     if root.token.is_binary_arithmetic():
@@ -125,22 +192,25 @@ def ast_to_llvm(root: ASTNode, rvalue: LLVMValue) -> LLVMValue:
     # Comparison operators
     if root.token.is_comparison_operator():
         left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr])
-        return llvm_comparison(root.token, left_vr, right_vr)
+        if parent_operation == TokenType.IF:
+            return llvm_compare_jump(root.token, left_vr, right_vr, rvalue)
+        else:
+            return llvm_comparison(root.token, left_vr, right_vr)
     # Terminal Node
     elif root.token.is_terminal():
-        if root.token.type == TokenType.INTEGER_LITERAL:
+        if root.type == TokenType.INTEGER_LITERAL:
             return llvm_store_constant(int(root.token.value))
     # Rvalue Identifier
-    elif root.token.type == TokenType.IDENTIFIER:
+    elif root.type == TokenType.IDENTIFIER:
         return llvm_load_global(str(root.token.value))
     # Lvalue Identifier
-    elif root.token.type == TokenType.LEFTVALUE_IDENTIFIER:
+    elif root.type == TokenType.LEFTVALUE_IDENTIFIER:
         llvm_store_global(str(root.token.value), rvalue)
         return rvalue
-    elif root.token.type == TokenType.ASSIGN:
+    elif root.type == TokenType.ASSIGN:
         return rvalue
     # Print statement
-    elif root.token.type == TokenType.PRINT:
+    elif root.type == TokenType.PRINT:
         llvm_print_int(left_vr)
     else:
         raise EccoFatalException(
@@ -168,7 +238,7 @@ def generate_llvm() -> None:
     for root in parse_statements():
         llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
 
-        ast_to_llvm(root, LLVMValue(LLVMValueType.NONE))
+        ast_to_llvm(root, LLVMValue(LLVMValueType.NONE), root.type)
 
     llvm_postamble()
 

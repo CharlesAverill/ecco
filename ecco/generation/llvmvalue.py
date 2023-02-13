@@ -10,6 +10,7 @@ class LLVMValueType(Enum):
     NONE = "None"
 
     VIRTUAL_REGISTER = "Virtual Register"
+    LABEL = "Label"
 
     def __str__(self) -> str:
         return self.value
@@ -67,7 +68,7 @@ class LLVMValue:
         self.int_value: int = 0
         self.number_type: NumberType = nt
 
-        if self.value_type == LLVMValueType.VIRTUAL_REGISTER:
+        if self.value_type in [LLVMValueType.VIRTUAL_REGISTER, LLVMValueType.LABEL]:
             if type(value) != int:
                 raise EccoInternalTypeError(
                     str(int),

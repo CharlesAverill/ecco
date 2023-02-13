@@ -1,16 +1,11 @@
-print 7 == 7; 
-print 7 != 9; 
-print 7 < 9;  
-print 7 <= 9;
-
-print 9 > 7;
-print 9 >= 7; 
-
-int x;
-x = 7 >= 7; 
-print x;
-x = 7 <= 7; 
-print x;
-
-// This is the same as (1 > 1) < 2
-print 1 > 1 < 2;
+{
+    int i;
+    int j;
+    i = 6;
+    j = 12;
+    if (i < j) {
+        print i;
+    } else {
+        print j;
+    }
+}

@@ -1,7 +1,7 @@
 from typing import List
 
 from ..scanning import Token, TokenType
-from ..utils import EccoFatalException
+from ..utils import EccoFatalException, EccoInternalTypeError
 from .llvmstackentry import LLVMStackEntry
 from .llvmvalue import LLVMValue, LLVMValueType, NumberType
 from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE
@@ -10,6 +10,7 @@ from .translate import (
     LLVM_OUT_FILE,
     get_next_local_virtual_register,
     LLVM_GLOBALS_FILE,
+    get_next_label,
 )
 
 NEWLINE = "\n"
@@ -433,7 +434,7 @@ def llvm_stack_allocation(entries: List[LLVMStackEntry]):
         )
 
 
-def llvm_print_int(reg: LLVMValue):
+def llvm_print_int(reg: LLVMValue) -> None:
     """Print out an integer followed by a newline and a null terminator
 
     Args:
@@ -449,3 +450,64 @@ def llvm_print_int(reg: LLVMValue):
             NEWLINE,
         ]
     )
+
+
+PURPLE_LABEL_PREFIX: str = "L"
+
+
+def llvm_label(label: LLVMValue) -> None:
+    if label.value_type != LLVMValueType.LABEL:
+        raise EccoInternalTypeError(
+            f"{LLVMValueType.LABEL}", f"{label.value_type}", "llvm.py:llvm_label"
+        )
+
+    LLVM_OUT_FILE.writelines([TAB, f"{PURPLE_LABEL_PREFIX}{label.int_value}:", NEWLINE])
+
+
+def llvm_jump(label: LLVMValue) -> None:
+    if label.value_type != LLVMValueType.LABEL:
+        raise EccoInternalTypeError(
+            f"{LLVMValueType.LABEL}", f"{label.value_type}", "llvm.py:llvm_jump"
+        )
+
+    LLVM_OUT_FILE.writelines(
+        [TAB, f"br label %{PURPLE_LABEL_PREFIX}{label.int_value}", NEWLINE]
+    )
+
+
+def llvm_conditional_jump(
+    condition_register: LLVMValue, true_label: LLVMValue, false_label: LLVMValue
+) -> None:
+    if true_label.value_type != LLVMValueType.LABEL:
+        raise EccoInternalTypeError(
+            f"{LLVMValueType.LABEL}", f"{true_label.value_type}", "llvm.py:llvm_jump"
+        )
+    if false_label.value_type != LLVMValueType.LABEL:
+        raise EccoInternalTypeError(
+            f"{LLVMValueType.LABEL}", f"{false_label.value_type}", "llvm.py:llvm_jump"
+        )
+
+    LLVM_OUT_FILE.writelines(
+        [
+            TAB,
+            f"br {condition_register.number_type} %{condition_register.int_value}, label %{PURPLE_LABEL_PREFIX}{true_label.int_value}, label %{PURPLE_LABEL_PREFIX}{false_label.int_value}",
+            NEWLINE,
+        ]
+    )
+
+
+def llvm_compare_jump(
+    comparison_type: Token,
+    left_vr: LLVMValue,
+    right_vr: LLVMValue,
+    false_label: LLVMValue,
+) -> LLVMValue:
+    comparison_result: LLVMValue = llvm_comparison(comparison_type, left_vr, right_vr)
+
+    true_label: LLVMValue = get_next_label()
+
+    llvm_conditional_jump(comparison_result, true_label, false_label)
+
+    llvm_label(true_label)
+
+    return comparison_result

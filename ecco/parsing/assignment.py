@@ -32,12 +32,12 @@ def assignment_statement() -> ASTNode:
     if GLOBAL_SYMBOL_TABLE[ident] is None:
         raise EccoFatalException("", f'Undefined variable "{ident}"')
 
-    right = ASTNode(Token(TokenType.LEFTVALUE_IDENTIFIER, ident), None, None)
+    right = ASTNode(Token(TokenType.LEFTVALUE_IDENTIFIER, ident), None, None, None)
 
     match_token(TokenType.ASSIGN)
 
     left = parse_binary_expression(0)
 
-    tree = ASTNode(Token(TokenType.ASSIGN), left, right)
+    tree = ASTNode(Token(TokenType.ASSIGN), left, None, right)
 
     return tree
