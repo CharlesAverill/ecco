@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Union
 
 from ..utils.ecco_logging import EccoInternalTypeError
+from .types import NumberType
 
 
 class LLVMValueType(Enum):
@@ -17,35 +18,6 @@ class LLVMValueType(Enum):
 
     def __int__(self) -> int:
         return LLVMValueType._member_names_.index(self._name_)
-
-
-class NumberType(Enum):
-    BOOL = "i1"
-    CHAR = "i8"
-    SHORT = "i16"
-    INT = "i32"
-    LONG = "i64"
-
-    @property
-    def byte_width(self) -> int:
-        return max(1, int(self.value[1:]) // 4)
-
-    @staticmethod
-    def from_int(i) -> "NumberType":
-        for t in NumberType:
-            if int(t) == i:
-                return t
-        raise EccoInternalTypeError(
-            f"one of {[int(t) for t in NumberType]}",
-            str(i),
-            "generation/llvm.py:NumberType.from_int",
-        )
-
-    def __str__(self) -> str:
-        return self.value
-
-    def __int__(self) -> int:
-        return NumberType._member_names_.index(self._name_)
 
 
 class LLVMValue:

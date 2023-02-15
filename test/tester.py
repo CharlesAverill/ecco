@@ -6,7 +6,12 @@ def _tester(test_name: str, expected: str):
     examples_dir = Path(__file__).parents[1] / "examples"
     subprocess.call(["poetry", "run", "ecco", f"{examples_dir}/{test_name}"])
     subprocess.call(["clang", f"{test_name}.ll"])
-    actual: str = subprocess.check_output(["./a.out"]).decode()
+    actual: str = ""
+    try:
+        actual = subprocess.check_output(["./a.out"]).decode()
+    except subprocess.CalledProcessError as e:
+        # We don't care if we have a non-zero exit status if our output matches
+        actual = str(e.output.decode())
     
     # I get this deprecation warning so I'm just manually filtering it out
     actual_lines = actual.splitlines()

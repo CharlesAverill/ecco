@@ -1,4 +1,4 @@
-{
+void main() {
   int fred;
   int jim;
   fred = 5;

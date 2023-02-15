@@ -184,6 +184,8 @@ def ast_to_llvm(
         llvm_print_int,
         llvm_comparison,
         llvm_compare_jump,
+        llvm_function_preamble,
+        llvm_function_postamble,
     )
 
     left_vr: LLVMValue
@@ -200,6 +202,15 @@ def ast_to_llvm(
         ast_to_llvm(root.middle, LLVMValue(LLVMValueType.NONE), root.type)
         ast_to_llvm(root.right, LLVMValue(LLVMValueType.NONE), root.type)
         return LLVMValue(LLVMValueType.NONE)
+    elif root.type == TokenType.FUNCTION:
+        if type(root.token.value) != str:
+            raise EccoInternalTypeError(
+                "str", str(type(root.token.value)), "translate.py:ast_to_llvm"
+            )
+        llvm_function_preamble(root.token.value)
+        ast_to_llvm(root.left, LLVMValue(LLVMValueType.NONE), root.type)
+        llvm_function_postamble()
+        return LLVMValue(LLVMValueType.NONE)
 
     if root.left:
         left_vr = ast_to_llvm(root.left, LLVMValue(LLVMValueType.NONE), root.type)
@@ -211,7 +222,7 @@ def ast_to_llvm(
         left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr])
         return llvm_binary_arithmetic(root.token, left_vr, right_vr)
     # Comparison operators
-    if root.token.is_comparison_operator():
+    elif root.token.is_comparison_operator():
         left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr])
         if parent_operation in [TokenType.IF, TokenType.WHILE]:
             return llvm_compare_jump(root.token, left_vr, right_vr, rvalue)
@@ -248,18 +259,20 @@ def generate_llvm() -> None:
     translate_init()
 
     from .llvm import (
-        llvm_postamble,
         llvm_preamble,
         llvm_stack_allocation,
+        llvm_postamble,
     )
-    from ..parsing import parse_statements
+    from ..parsing import function_declaration_statement
+    from ..ecco import GLOBAL_SCANNER
 
     llvm_preamble()
 
-    root = parse_statements()
-    llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
+    while GLOBAL_SCANNER.current_token.type != TokenType.EOF:
+        root = function_declaration_statement()
+        llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
 
-    ast_to_llvm(root, LLVMValue(LLVMValueType.NONE), root.type)
+        ast_to_llvm(root, LLVMValue(LLVMValueType.NONE), root.type)
 
     llvm_postamble()
 

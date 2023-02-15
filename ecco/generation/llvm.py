@@ -1,9 +1,10 @@
-from typing import List
+from typing import List, Optional
 
 from ..scanning import Token, TokenType
 from ..utils import EccoFatalException, EccoInternalTypeError
 from .llvmstackentry import LLVMStackEntry
-from .llvmvalue import LLVMValue, LLVMValueType, NumberType
+from .llvmvalue import LLVMValue, LLVMValueType
+from .types import NumberType, Function, Number
 from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE
 from .translate import (
     LLVM_LOADED_REGISTERS,
@@ -19,6 +20,8 @@ TAB = "\t"
 LLVM_GLOBALS_PLACEHOLDER = (
     "<ECCO GLOBALS PLACEHOLDER - If you see this, an issue with ECCO occurrred!>"
 )
+
+CURRENT_FUNCTION_PREAMBLE_PRINTED = False
 
 
 def llvm_preamble():
@@ -41,8 +44,6 @@ def llvm_preamble():
             NEWLINE,
             "; Function Attrs: noinline nounwind optnone uwtable",
             NEWLINE,
-            "define dso_local i32 @main() #0 {",
-            NEWLINE,
         ]
     )
 
@@ -51,12 +52,6 @@ def llvm_postamble():
     """Generates the postamble of the LLVM program"""
     LLVM_OUT_FILE.writelines(
         [
-            TAB,
-            "ret i32 0",
-            NEWLINE,
-            "}",
-            NEWLINE,
-            NEWLINE,
             "declare i32 @printf(i8*, ...) #1",
             NEWLINE,
             'attributes #0 = { noinline nounwind optnone uwtable "frame-pointer"="all" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }',
@@ -402,8 +397,11 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
     """
     ste = GLOBAL_SYMBOL_TABLE[name]
     if ste:
-        if rvalue.number_type != ste.number_type:
-            rvalue = llvm_int_resize(rvalue, ste.number_type)
+        if (
+            type(ste.identifier_type.contents) == Number
+            and rvalue.number_type != ste.value
+        ):
+            rvalue = llvm_int_resize(rvalue, ste.identifier_type.contents.ntype)
     else:
         raise EccoFatalException(
             "",
@@ -417,6 +415,11 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
     )
 
 
+# Without buffering our stack entries, we'll end up printing our stack entries
+# before we even generate function preambles!
+buffered_stack_entries = []
+
+
 def llvm_stack_allocation(entries: List[LLVMStackEntry]):
     """Generate allocation statements
 
@@ -424,6 +427,13 @@ def llvm_stack_allocation(entries: List[LLVMStackEntry]):
         entries (List[LLVMStackEntry]): List of LLVMStackEntries that describe
                                         the requirements of an expression.
     """
+    global buffered_stack_entries
+
+    if not CURRENT_FUNCTION_PREAMBLE_PRINTED:
+        buffered_stack_entries += entries
+
+        return False
+
     for entry in entries:
         LLVM_OUT_FILE.writelines(
             [
@@ -432,6 +442,8 @@ def llvm_stack_allocation(entries: List[LLVMStackEntry]):
                 NEWLINE,
             ]
         )
+
+    return True
 
 
 def llvm_print_int(reg: LLVMValue) -> None:
@@ -511,3 +523,42 @@ def llvm_compare_jump(
     llvm_label(true_label)
 
     return comparison_result
+
+
+def llvm_function_preamble(function_name: str) -> None:
+    global CURRENT_FUNCTION_PREAMBLE_PRINTED, buffered_stack_entries
+
+    from .symboltable import SymbolTableEntry
+
+    entry: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[function_name]
+    if not entry:
+        raise EccoFatalException(
+            "", "Tried to generate function preamble for undeclared function"
+        )
+    elif entry.identifier_type.type != Function:
+        raise EccoInternalTypeError(
+            "Function",
+            str(entry.identifier_type.type),
+            "llvm.py:llvm_function_preamble",
+        )
+
+    LLVM_OUT_FILE.writelines(
+        [
+            f"define dso_local {entry.identifier_type.llvm_repr} @{function_name}() #0 {{",
+            NEWLINE,
+        ]
+    )
+
+    CURRENT_FUNCTION_PREAMBLE_PRINTED = True
+
+    if buffered_stack_entries:
+        llvm_stack_allocation(buffered_stack_entries)
+        buffered_stack_entries = []
+
+
+def llvm_function_postamble() -> None:
+    global CURRENT_FUNCTION_PREAMBLE_PRINTED
+
+    LLVM_OUT_FILE.writelines([TAB, "ret void", NEWLINE, "}", NEWLINE, NEWLINE])
+
+    CURRENT_FUNCTION_PREAMBLE_PRINTED = False

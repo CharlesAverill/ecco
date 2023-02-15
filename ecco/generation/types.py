@@ -1,0 +1,63 @@
+from enum import Enum
+from ..scanning.ecco_token import TokenType
+from typing import Union
+from ..utils import EccoInternalTypeError
+
+
+class NumberType(Enum):
+    BOOL = "i1"
+    CHAR = "i8"
+    SHORT = "i16"
+    INT = "i32"
+    LONG = "i64"
+
+    @property
+    def byte_width(self) -> int:
+        return max(1, int(self.value[1:]) // 4)
+
+    @staticmethod
+    def from_int(i) -> "NumberType":
+        for t in NumberType:
+            if int(t) == i:
+                return t
+        raise EccoInternalTypeError(
+            f"one of {[int(t) for t in NumberType]}",
+            str(i),
+            "generation/llvm.py:NumberType.from_int",
+        )
+
+    def __str__(self) -> str:
+        return self.value
+
+    def __int__(self) -> int:
+        return NumberType._member_names_.index(self._name_)
+
+
+class Number:
+    def __init__(self, ntype: NumberType, value: int):
+        self.ntype: NumberType = ntype
+        self.value: int = value
+
+
+class Function:
+    def __init__(self, rtype: TokenType):
+        self.return_type: TokenType = rtype
+
+
+class Type:
+    def __init__(self, ttype: TokenType, value: Union[Number, Function]) -> None:
+        self.ttype: TokenType = ttype
+        self.contents: Union[Number, Function] = value
+
+    @property
+    def type(self):
+        return type(self.contents)
+
+    @property
+    def llvm_repr(self) -> str:
+        if type(self.contents) == Number:
+            return str(self.contents.ntype)
+        elif type(self.contents) == Function:
+            if self.contents.return_type == TokenType.VOID:
+                return "void"
+        return "brokentype"

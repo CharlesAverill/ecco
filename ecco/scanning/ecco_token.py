@@ -29,6 +29,7 @@ class TokenType(Enum):
     INTEGER_LITERAL = "%integer literal"
 
     # Types
+    VOID = "void"
     INT = "int"
 
     # Assignment
@@ -45,6 +46,7 @@ class TokenType(Enum):
     SEMICOLON = ";"
     IDENTIFIER = "%identifier"
     LEFTVALUE_IDENTIFIER = "%leftvalue identifier"
+    FUNCTION = "%function"
     LEFT_BRACE = "{"
     RIGHT_BRACE = "}"
     LEFT_PARENTHESIS = "("
