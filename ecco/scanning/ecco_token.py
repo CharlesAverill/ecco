@@ -31,6 +31,7 @@ class TokenType(Enum):
     # Types
     VOID = "void"
     INT = "int"
+    CHAR = "char"
 
     # Assignment
     ASSIGN = "="
@@ -51,6 +52,9 @@ class TokenType(Enum):
     RIGHT_BRACE = "}"
     LEFT_PARENTHESIS = "("
     RIGHT_PARENTHESIS = ")"
+
+    def is_type(self):
+        return int(TokenType.VOID) <= int(self) <= int(TokenType.CHAR)
 
     @staticmethod
     def from_string(c: str, next_char: str) -> "TokenType":

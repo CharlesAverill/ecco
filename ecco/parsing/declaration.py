@@ -16,7 +16,7 @@ def function_declaration_statement() -> ASTNode:
     from ..ecco import GLOBAL_SYMBOL_TABLE
 
     match_token(TokenType.VOID)
-    identifier: Union[str, int] = match_token(TokenType.IDENTIFIER)
+    identifier: Union[str, int] = match_token(TokenType.IDENTIFIER)[0]
     if type(identifier) != str:
         raise EccoInternalTypeError(
             "str",
@@ -49,9 +49,9 @@ def declaration_statement() -> None:
     from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
     from ..generation.llvm import llvm_declare_global
 
-    match_token(TokenType.INT)
+    ttype = match_token([TokenType.INT, TokenType.CHAR])[1]
 
-    ident = match_token(TokenType.IDENTIFIER)
+    ident = match_token(TokenType.IDENTIFIER)[0]
 
     if type(ident) != str:
         raise EccoInternalTypeError(
@@ -62,7 +62,13 @@ def declaration_statement() -> None:
 
     GLOBAL_SYMBOL_TABLE.update(
         ident,
-        SymbolTableEntry(ident, Type(TokenType.INT, Number(NumberType.INT, 0))),
+        SymbolTableEntry(
+            ident, Type(ttype, Number(NumberType.from_tokentype(ttype), 0))
+        ),
     )
 
-    llvm_declare_global(ident, 0)
+    ste = GLOBAL_SYMBOL_TABLE[ident]
+    if ste and type(ste.identifier_type.contents) == Number:
+        llvm_declare_global(ident, 0, ste.identifier_type.contents.ntype)
+    else:
+        raise EccoIdentifierError("Failed to insert identifier into GST")

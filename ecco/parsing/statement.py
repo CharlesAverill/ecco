@@ -2,12 +2,14 @@ from .ecco_ast import ASTNode
 from ..scanning import TokenType, Token
 from .expression import parse_binary_expression
 from ..utils import EccoSyntaxError, EccoFatalException
-from typing import Optional, Union
+from typing import Optional, Union, List, Tuple
 from .declaration import declaration_statement
 from .assignment import assignment_statement
 
 
-def match_token(tt: TokenType) -> Union[str, int]:
+def match_token(
+    tt: Union[TokenType, List[TokenType]]
+) -> Tuple[Union[str, int], TokenType]:
     """Ensure the current token is of a certain type, then scan another token
 
     Args:
@@ -21,10 +23,13 @@ def match_token(tt: TokenType) -> Union[str, int]:
     """
     from ..ecco import GLOBAL_SCANNER
 
-    if GLOBAL_SCANNER.current_token.type == tt:
+    if (type(tt) == TokenType and GLOBAL_SCANNER.current_token.type == tt) or (
+        type(tt) == list and GLOBAL_SCANNER.current_token.type in tt
+    ):
         token_value = GLOBAL_SCANNER.current_token.value
+        token_type = GLOBAL_SCANNER.current_token.type
         GLOBAL_SCANNER.scan()
-        return token_value
+        return (token_value, token_type)
 
     raise EccoSyntaxError(
         f'Expected "{str(tt)}" but got "{str(GLOBAL_SCANNER.current_token.type)}"'
@@ -137,7 +142,7 @@ def parse_statements() -> ASTNode:
 
         if GLOBAL_SCANNER.current_token.type == TokenType.PRINT:
             root = print_statement()
-        elif GLOBAL_SCANNER.current_token.type == TokenType.INT:
+        elif GLOBAL_SCANNER.current_token.type.is_type():
             declaration_statement()
             root.token.type = TokenType.UNKNOWN_TOKEN
         elif GLOBAL_SCANNER.current_token.type == TokenType.IDENTIFIER:

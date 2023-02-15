@@ -26,6 +26,14 @@ class NumberType(Enum):
             "generation/llvm.py:NumberType.from_int",
         )
 
+    @staticmethod
+    def from_tokentype(t: TokenType):
+        if t == TokenType.INT:
+            return NumberType.INT
+        elif t == TokenType.CHAR:
+            return NumberType.CHAR
+        return None
+
     def __str__(self) -> str:
         return self.value
 

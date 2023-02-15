@@ -114,7 +114,13 @@ def llvm_ensure_registers_loaded(
     for i in range(len(registers_to_check)):
         if not found_registers[i]:
             new_reg = get_next_local_virtual_register()
-            loaded_registers.append(LLVMValue(LLVMValueType.VIRTUAL_REGISTER, new_reg))
+            loaded_registers.append(
+                LLVMValue(
+                    LLVMValueType.VIRTUAL_REGISTER,
+                    new_reg,
+                    registers_to_check[i].number_type,
+                )
+            )
             LLVM_OUT_FILE.writelines(
                 [
                     TAB,
@@ -130,6 +136,9 @@ def llvm_ensure_registers_loaded(
 
 
 def llvm_int_resize(register: LLVMValue, new_width: NumberType):
+    register = llvm_ensure_registers_loaded([register])[0]
+    print(register.number_type)
+
     op = "zext" if int(new_width) > int(register.number_type.byte_width) else "trunc"
 
     out_reg_num = get_next_local_virtual_register()
@@ -137,7 +146,7 @@ def llvm_int_resize(register: LLVMValue, new_width: NumberType):
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_reg_num} = {op} i{register.number_type.byte_width} %{register.int_value} to {new_width}",
+            f"%{out_reg_num} = {op} {register.number_type} %{register.int_value} to {new_width}",
             NEWLINE,
         ]
     )
@@ -171,7 +180,7 @@ def llvm_add(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
         ]
     )
 
-    return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr)
+    return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr, left_vr.number_type)
 
 
 def llvm_sub(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
@@ -196,7 +205,7 @@ def llvm_sub(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
         ]
     )
 
-    return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr)
+    return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr, left_vr.number_type)
 
 
 def llvm_mul(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
@@ -221,7 +230,7 @@ def llvm_mul(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
         ]
     )
 
-    return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr)
+    return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr, left_vr.number_type)
 
 
 def llvm_div(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
@@ -246,7 +255,7 @@ def llvm_div(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
         ]
     )
 
-    return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr)
+    return LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr, left_vr.number_type)
 
 
 def llvm_binary_arithmetic(
@@ -271,6 +280,8 @@ def llvm_binary_arithmetic(
                    is guaranteed to be loaded
     """
     out_vr: LLVMValue
+
+    print(left_vr.number_type, right_vr.number_type)
 
     if int(left_vr.number_type) < int(right_vr.number_type):
         left_vr = llvm_int_resize(left_vr, right_vr.number_type)
@@ -360,14 +371,14 @@ def llvm_store_constant(value: int) -> LLVMValue:
     )
 
 
-def llvm_declare_global(name: str, value: int = 0):
+def llvm_declare_global(name: str, value: int = 0, ntype: NumberType = NumberType.INT):
     """Declare a global variable
 
     Args:
         name (str): Name of global variable
         value (int, optional): Value to set variable to. Defaults to 0.
     """
-    LLVM_GLOBALS_FILE.writelines([f"@{name} = global i32 {value}", NEWLINE])
+    LLVM_GLOBALS_FILE.writelines([f"@{name} = global {ntype} {value}", NEWLINE])
 
 
 def llvm_load_global(name: str) -> LLVMValue:
@@ -381,9 +392,17 @@ def llvm_load_global(name: str) -> LLVMValue:
     """
     out_vr: int = get_next_local_virtual_register()
 
-    LLVM_OUT_FILE.writelines([TAB, f"%{out_vr} = load i32, i32* @{name}", NEWLINE])
+    ste = GLOBAL_SYMBOL_TABLE[name]
+    if ste and type(ste.identifier_type.contents) == Number:
+        glob_ntype = ste.identifier_type.contents.ntype
 
-    LLVM_LOADED_REGISTERS.append(LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr))
+    LLVM_OUT_FILE.writelines(
+        [TAB, f"%{out_vr} = load {glob_ntype}, {glob_ntype}* @{name}", NEWLINE]
+    )
+
+    LLVM_LOADED_REGISTERS.append(
+        LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr, glob_ntype)
+    )
 
     return LLVM_LOADED_REGISTERS[-1]
 
@@ -399,7 +418,7 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
     if ste:
         if (
             type(ste.identifier_type.contents) == Number
-            and rvalue.number_type != ste.value
+            and rvalue.number_type != ste.identifier_type.contents.ntype
         ):
             rvalue = llvm_int_resize(rvalue, ste.identifier_type.contents.ntype)
     else:
@@ -410,9 +429,20 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
 
     rvalue.int_value = llvm_ensure_registers_loaded([rvalue])[0].int_value
 
-    LLVM_OUT_FILE.writelines(
-        [TAB, f"store i32 %{rvalue.int_value}, i32* @{name}", NEWLINE]
-    )
+    if type(ste.identifier_type.contents) == Number:
+        LLVM_OUT_FILE.writelines(
+            [
+                TAB,
+                f"store {rvalue.number_type} %{rvalue.int_value}, {ste.identifier_type.contents.ntype}* @{name}",
+                NEWLINE,
+            ]
+        )
+    else:
+        raise EccoInternalTypeError(
+            str(Number),
+            str(type(ste.identifier_type.contents)),
+            "llvm.py:llvm_store_global",
+        )
 
 
 # Without buffering our stack entries, we'll end up printing our stack entries

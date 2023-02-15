@@ -21,7 +21,7 @@ def assignment_statement() -> ASTNode:
     right: ASTNode
     tree: ASTNode
 
-    ident = match_token(TokenType.IDENTIFIER)
+    ident = match_token(TokenType.IDENTIFIER)[0]
     if type(ident) != str:
         raise EccoInternalTypeError(
             "str",
