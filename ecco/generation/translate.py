@@ -186,6 +186,7 @@ def ast_to_llvm(
         llvm_compare_jump,
         llvm_function_preamble,
         llvm_function_postamble,
+        llvm_stack_allocation,
     )
 
     left_vr: LLVMValue
@@ -208,6 +209,7 @@ def ast_to_llvm(
                 "str", str(type(root.token.value)), "translate.py:ast_to_llvm"
             )
         llvm_function_preamble(root.token.value)
+        llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
         ast_to_llvm(root.left, LLVMValue(LLVMValueType.NONE), root.type)
         llvm_function_postamble()
         return LLVMValue(LLVMValueType.NONE)
@@ -270,8 +272,6 @@ def generate_llvm() -> None:
 
     while GLOBAL_SCANNER.current_token.type != TokenType.EOF:
         root = function_declaration_statement()
-        llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
-
         ast_to_llvm(root, LLVMValue(LLVMValueType.NONE), root.type)
 
     llvm_postamble()

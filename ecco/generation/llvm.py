@@ -21,8 +21,6 @@ LLVM_GLOBALS_PLACEHOLDER = (
     "<ECCO GLOBALS PLACEHOLDER - If you see this, an issue with ECCO occurrred!>"
 )
 
-CURRENT_FUNCTION_PREAMBLE_PRINTED = False
-
 
 def llvm_preamble():
     """Generates the preamble of the LLVM program"""
@@ -445,11 +443,6 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
         )
 
 
-# Without buffering our stack entries, we'll end up printing our stack entries
-# before we even generate function preambles!
-buffered_stack_entries = []
-
-
 def llvm_stack_allocation(entries: List[LLVMStackEntry]):
     """Generate allocation statements
 
@@ -457,13 +450,6 @@ def llvm_stack_allocation(entries: List[LLVMStackEntry]):
         entries (List[LLVMStackEntry]): List of LLVMStackEntries that describe
                                         the requirements of an expression.
     """
-    global buffered_stack_entries
-
-    if not CURRENT_FUNCTION_PREAMBLE_PRINTED:
-        buffered_stack_entries += entries
-
-        return False
-
     for entry in entries:
         LLVM_OUT_FILE.writelines(
             [
@@ -560,8 +546,6 @@ def llvm_compare_jump(
 
 
 def llvm_function_preamble(function_name: str) -> None:
-    global CURRENT_FUNCTION_PREAMBLE_PRINTED, buffered_stack_entries
-
     from .symboltable import SymbolTableEntry
 
     entry: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[function_name]
@@ -583,16 +567,6 @@ def llvm_function_preamble(function_name: str) -> None:
         ]
     )
 
-    CURRENT_FUNCTION_PREAMBLE_PRINTED = True
-
-    if buffered_stack_entries:
-        llvm_stack_allocation(buffered_stack_entries)
-        buffered_stack_entries = []
-
 
 def llvm_function_postamble() -> None:
-    global CURRENT_FUNCTION_PREAMBLE_PRINTED
-
     LLVM_OUT_FILE.writelines([TAB, "ret void", NEWLINE, "}", NEWLINE, NEWLINE])
-
-    CURRENT_FUNCTION_PREAMBLE_PRINTED = False
