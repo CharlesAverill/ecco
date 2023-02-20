@@ -522,11 +522,15 @@ def llvm_conditional_jump(
 ) -> None:
     if true_label.value_type != LLVMValueType.LABEL:
         raise EccoInternalTypeError(
-            f"{LLVMValueType.LABEL}", f"{true_label.value_type}", "llvm.py:llvm_conditional_jump"
+            f"{LLVMValueType.LABEL}",
+            f"{true_label.value_type}",
+            "llvm.py:llvm_conditional_jump",
         )
     if false_label.value_type != LLVMValueType.LABEL:
         raise EccoInternalTypeError(
-            f"{LLVMValueType.LABEL}", f"{false_label.value_type}", "llvm.py:llvm_conditional_jump"
+            f"{LLVMValueType.LABEL}",
+            f"{false_label.value_type}",
+            "llvm.py:llvm_conditional_jump",
         )
 
     LLVM_OUT_FILE.writelines(
