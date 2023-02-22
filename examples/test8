@@ -1,0 +1,11 @@
+int fred() {
+    if (3 > 4) {
+        return 5;
+    } else {
+        return 7;
+    }
+}
+
+int main() {
+    print fred(0);
+}

@@ -55,3 +55,7 @@ def test7():
 5
 5
 35""")
+
+
+def test8():
+    _tester("test8", "7")

@@ -615,6 +615,8 @@ def llvm_return(return_value: LLVMValue, function_name: str) -> None:
         LLVM_OUT_FILE.writelines(
             [TAB, f"ret {return_value.number_type} %{return_value.int_value}", NEWLINE]
         )
+        
+    get_next_local_virtual_register()
 
 
 def llvm_call_function(argument: LLVMValue, function_name: str) -> LLVMValue:

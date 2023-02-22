@@ -95,15 +95,18 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
     from .llvm import get_next_local_virtual_register
 
     left_entry: List[LLVMStackEntry] = []
+    middle_entry: List[LLVMStackEntry] = []
     right_entry: List[LLVMStackEntry] = []
 
     if root.left or root.right:
         if root.left:
             left_entry = determine_binary_expression_stack_allocation(root.left)
+        if root.middle:
+            middle_entry = determine_binary_expression_stack_allocation(root.middle)
         if root.right:
             right_entry = determine_binary_expression_stack_allocation(root.right)
 
-        return left_entry + right_entry
+        return left_entry + middle_entry + right_entry
     elif root.type in [TokenType.INTEGER_LITERAL, TokenType.IDENTIFIER]:
         out_entry = LLVMStackEntry(
             LLVMValue(
