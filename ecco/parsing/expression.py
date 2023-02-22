@@ -52,7 +52,8 @@ def parse_terminal_node() -> ASTNode:
             )
 
         if type(ident.identifier_type.contents) == Function:
-            out = function_call_expression(ident.identifier_name)
+            match_token(TokenType.IDENTIFIER)
+            return function_call_expression(ident.identifier_name)
         else:
             out = ASTNode(
                 Token(TokenType.IDENTIFIER, ident.identifier_name), None, None, None

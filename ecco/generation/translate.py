@@ -196,7 +196,7 @@ def ast_to_llvm(
         llvm_function_postamble,
         llvm_stack_allocation,
         llvm_return,
-        # llvm_call_function,
+        llvm_call_function,
     )
 
     left_vr: LLVMValue
@@ -221,7 +221,7 @@ def ast_to_llvm(
         llvm_function_preamble(root.token.value)
         llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
         ast_to_llvm(root.left, LLVMValue(LLVMValueType.NONE), root.type)
-        llvm_function_postamble()
+        llvm_function_postamble(root.token.value)
         return LLVMValue(LLVMValueType.NONE)
 
     if root.left:
@@ -263,8 +263,7 @@ def ast_to_llvm(
         return LLVMValue(LLVMValueType.NONE)
     # Function call
     elif root.type == TokenType.FUNCTION_CALL:
-        pass
-        # return llvm_call_function(left_vr, root.token.value)
+        return llvm_call_function(left_vr, str(root.token.value))
     # Print statement
     elif root.type == TokenType.PRINT:
         llvm_print_int(left_vr)
