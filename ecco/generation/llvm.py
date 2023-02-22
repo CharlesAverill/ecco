@@ -8,6 +8,8 @@ from .llvmvalue import LLVMValue, LLVMValueType
 from .types import NumberType, Function, Number
 from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE
 from .translate import (
+    add_loaded_register,
+    get_last_loaded_register,
     LLVM_OUT_FILE,
     get_next_local_virtual_register,
     LLVM_GLOBALS_FILE,
@@ -128,7 +130,7 @@ def llvm_ensure_registers_loaded(
                     NEWLINE,
                 ]
             )
-            LLVM_LOADED_REGISTERS.append(loaded_registers[-1])
+            add_loaded_register((loaded_registers[-1]))
         else:
             loaded_registers.append(registers_to_check[i])
 
@@ -136,8 +138,6 @@ def llvm_ensure_registers_loaded(
 
 
 def llvm_int_resize(register: LLVMValue, new_width: NumberType):
-    from .translate import LLVM_LOADED_REGISTERS
-
     register = llvm_ensure_registers_loaded([register])[0]
 
     op = "zext" if int(new_width) > int(register.number_type.byte_width) else "trunc"
@@ -152,11 +152,11 @@ def llvm_int_resize(register: LLVMValue, new_width: NumberType):
         ]
     )
 
-    LLVM_LOADED_REGISTERS.append(
+    add_loaded_register(
         LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_reg_num, new_width)
     )
 
-    return LLVM_LOADED_REGISTERS[-1]
+    return get_last_loaded_register()
 
 
 def llvm_add(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
@@ -280,8 +280,6 @@ def llvm_binary_arithmetic(
                    the binary operation on left_vr and right_vr - this register
                    is guaranteed to be loaded
     """
-    from .translate import LLVM_LOADED_REGISTERS
-
     out_vr: LLVMValue
 
     if int(left_vr.number_type) < int(right_vr.number_type):
@@ -303,14 +301,12 @@ def llvm_binary_arithmetic(
             f'llvm_binary_arithmetic receieved non-binary-arithmetic-operator Token "{str(token.type)}"',
         )
 
-    LLVM_LOADED_REGISTERS.append(out_vr)
+    add_loaded_register((out_vr))
 
     return out_vr
 
 
 def llvm_comparison(token: Token, left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
-    from .translate import LLVM_LOADED_REGISTERS
-
     out_vr: LLVMValue
 
     if int(left_vr.number_type) < int(right_vr.number_type):
@@ -342,7 +338,7 @@ def llvm_comparison(token: Token, left_vr: LLVMValue, right_vr: LLVMValue) -> LL
         ]
     )
 
-    LLVM_LOADED_REGISTERS.append(out_vr)
+    add_loaded_register((out_vr))
 
     return out_vr
 
@@ -393,8 +389,6 @@ def llvm_load_global(name: str) -> LLVMValue:
     Returns:
         LLVMValue: LLVMValue containing the register number the variable was loaded into
     """
-    from .translate import LLVM_LOADED_REGISTERS
-
     out_vr: int = get_next_local_virtual_register()
 
     ste = GLOBAL_SYMBOL_TABLE[name]
@@ -405,11 +399,9 @@ def llvm_load_global(name: str) -> LLVMValue:
         [TAB, f"%{out_vr} = load {glob_ntype}, {glob_ntype}* @{name}", NEWLINE]
     )
 
-    LLVM_LOADED_REGISTERS.append(
-        LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr, glob_ntype)
-    )
+    add_loaded_register(LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr, glob_ntype))
 
-    return LLVM_LOADED_REGISTERS[-1]
+    return get_last_loaded_register()
 
 
 def llvm_store_global(name: str, rvalue: LLVMValue):
@@ -589,17 +581,17 @@ def llvm_function_postamble(function_name: str) -> None:
             f'Tried to close non-function identifier "{function_name}"',
         )
 
-    LLVM_OUT_FILE.writelines([
-        TAB, "ret "
-    ])
+    LLVM_OUT_FILE.writelines([TAB, "ret "])
 
     if entry.identifier_type.contents.return_type == TokenType.VOID:
         LLVM_OUT_FILE.write("void")
     else:
-        LLVM_OUT_FILE.writelines([
-            f"{NumberType.from_tokentype(entry.identifier_type.contents.return_type)} {'' if entry.identifier_type.contents.return_type == TokenType.VOID else '0'}",
-            NEWLINE
-        ])
+        LLVM_OUT_FILE.writelines(
+            [
+                f"{NumberType.from_tokentype(entry.identifier_type.contents.return_type)} {'' if entry.identifier_type.contents.return_type == TokenType.VOID else '0'}",
+                NEWLINE,
+            ]
+        )
 
     LLVM_OUT_FILE.writelines(["}", NEWLINE])
 
@@ -626,8 +618,6 @@ def llvm_return(return_value: LLVMValue, function_name: str) -> None:
 
 
 def llvm_call_function(argument: LLVMValue, function_name: str) -> LLVMValue:
-    from .translate import LLVM_LOADED_REGISTERS
-
     out: LLVMValue = LLVMValue(LLVMValueType.NONE)
 
     entry: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[function_name]
@@ -652,7 +642,7 @@ def llvm_call_function(argument: LLVMValue, function_name: str) -> LLVMValue:
         )
         LLVM_OUT_FILE.writelines([f"%{out.int_value} = "])
         call_type = str(out.number_type)
-        LLVM_LOADED_REGISTERS.append(out)
+        add_loaded_register((out))
 
     LLVM_OUT_FILE.writelines([f"call {call_type} () @{function_name}()", NEWLINE])
 

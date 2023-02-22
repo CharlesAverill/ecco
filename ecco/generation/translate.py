@@ -70,6 +70,16 @@ def get_next_local_virtual_register() -> int:
     return LLVM_VIRTUAL_REGISTER_NUMBER
 
 
+def add_loaded_register(reg: LLVMValue):
+    global LLVM_LOADED_REGISTERS
+    LLVM_LOADED_REGISTERS.append(reg)
+
+
+def get_last_loaded_register():
+    global LLVM_LOADED_REGISTERS
+    return LLVM_LOADED_REGISTERS[-1]
+
+
 def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStackEntry]:
     """Function to determine the necessary stack allocation for a binary
     expression
