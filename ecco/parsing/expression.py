@@ -12,7 +12,7 @@ from typing import Optional
 from ..generation.symboltable import SymbolTableEntry
 from .statement import match_token
 
-from ..generation.types import Function, Number
+from ..generation.types import Function
 
 OPERATOR_PRECEDENCE: Dict[TokenType, int] = {
     TokenType.PLUS: 12,
@@ -52,7 +52,7 @@ def parse_terminal_node() -> ASTNode:
             )
 
         if type(ident.identifier_type.contents) == Function:
-            out = function_call_expression()
+            out = function_call_expression(ident.identifier_name)
         else:
             out = ASTNode(
                 Token(TokenType.IDENTIFIER, ident.identifier_name), None, None, None
@@ -68,23 +68,25 @@ def parse_terminal_node() -> ASTNode:
     return out
 
 
-def function_call_expression() -> ASTNode:
+def function_call_expression(function_name_override: str = "") -> ASTNode:
     from ..ecco import GLOBAL_SYMBOL_TABLE, GLOBAL_SCANNER
 
     # By the time we're executing code on the inside of function_call_expression,
     # we've already scanned in an identifier
     if type(GLOBAL_SCANNER.current_token.value) != str:
-        raise EccoInternalTypeError(
-            "str",
-            str(type(GLOBAL_SCANNER.current_token.value)),
-            "expression.py:function_call_expression",
-        )
-    ident: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[
-        GLOBAL_SCANNER.current_token.value
-    ]
+        if not function_name_override:
+            raise EccoInternalTypeError(
+                "str",
+                str(type(GLOBAL_SCANNER.current_token.value)),
+                "expression.py:function_call_expression",
+            )
+    elif not function_name_override:
+        function_name_override = GLOBAL_SCANNER.current_token.value
+
+    ident: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[function_name_override]
     if not ident:
         raise EccoIdentifierError(
-            f'Tried to call undeclared function "{GLOBAL_SCANNER.current_token.value}"'
+            f'Tried to call undeclared function "{function_name_override}"'
         )
     elif type(ident.identifier_type.contents) != Function:
         raise EccoIdentifierError(
@@ -98,8 +100,9 @@ def function_call_expression() -> ASTNode:
 
     match_token(TokenType.RIGHT_PARENTHESIS)
 
-    out: ASTNode = ASTNode(Token(TokenType.FUNCTION_CALL), single_argument)
-    out.function_return_type = ident.ntype()
+    out: ASTNode = ASTNode(
+        Token(TokenType.FUNCTION_CALL, ident.identifier_name), single_argument
+    )
 
     return out
 

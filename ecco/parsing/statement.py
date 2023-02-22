@@ -1,6 +1,5 @@
 from .ecco_ast import ASTNode
 from ..scanning import TokenType, Token
-from .expression import parse_binary_expression
 from ..utils import EccoSyntaxError, EccoFatalException
 from typing import Optional, Union, List, Tuple
 from .declaration import declaration_statement
@@ -38,6 +37,8 @@ def match_token(
 
 
 def print_statement() -> ASTNode:
+    from .expression import parse_binary_expression
+
     match_token(TokenType.PRINT)
 
     tree = parse_binary_expression(0)
@@ -48,6 +49,7 @@ def print_statement() -> ASTNode:
 
 
 def if_statement() -> ASTNode:
+    from .expression import parse_binary_expression
     from ..ecco import GLOBAL_SCANNER
 
     # Match some syntax
@@ -81,6 +83,8 @@ def if_statement() -> ASTNode:
 
 
 def while_statement() -> ASTNode:
+    from .expression import parse_binary_expression
+
     # Match some syntax
     match_token(TokenType.WHILE)
     match_token(TokenType.LEFT_PARENTHESIS)
@@ -101,6 +105,8 @@ def while_statement() -> ASTNode:
 
 
 def for_statement() -> ASTNode:
+    from .expression import parse_binary_expression
+
     match_token(TokenType.FOR)
     match_token(TokenType.LEFT_PARENTHESIS)
 
@@ -131,10 +137,28 @@ def for_statement() -> ASTNode:
 
 def return_statement() -> ASTNode:
     from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
+    from .expression import parse_binary_expression
+
+    match_token(TokenType.RETURN)
 
     ident: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[
         GLOBAL_SCANNER.current_function_name
     ]
+    if not ident:
+        raise EccoFatalException("", "Lost track of current function!")
+
+    if ident.identifier_type.ttype == TokenType.VOID:
+        return ASTNode(Token(TokenType.RETURN, GLOBAL_SCANNER.current_function_name))
+
+    try:
+        return ASTNode(
+            Token(TokenType.RETURN, GLOBAL_SCANNER.current_function_name),
+            parse_binary_expression(0),
+        )
+    except EccoSyntaxError:
+        raise EccoSyntaxError(
+            'Missing return statement in function "{GLOBAL_SCANNER.current_function_name"'
+        )
 
 
 def parse_statements() -> ASTNode:

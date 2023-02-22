@@ -1,8 +1,8 @@
 from .ecco_ast import ASTNode
 from ..scanning import TokenType, Token
 from ..utils import EccoInternalTypeError, EccoFatalException
-from .expression import parse_binary_expression, function_call_expression
 from ..generation.types import Function
+from typing import Optional
 
 
 def assignment_statement() -> ASTNode:
@@ -16,7 +16,9 @@ def assignment_statement() -> ASTNode:
         ASTNode: ASTNode encoding assignment tree
     """
     from .statement import match_token
+    from .expression import parse_binary_expression, function_call_expression
     from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
+    from ..generation import SymbolTableEntry
 
     left: ASTNode
     right: ASTNode
@@ -30,10 +32,11 @@ def assignment_statement() -> ASTNode:
             "ecco/parsing/assignment.py:assignment_statement",
         )
 
-    if GLOBAL_SYMBOL_TABLE[ident] is None:
+    symbol: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[ident]
+    if symbol is None:
         raise EccoFatalException("", f'Undefined variable "{ident}"')
-    elif type(GLOBAL_SYMBOL_TABLE[ident].identifier_type.contents) == Function:
-        return function_call_expression()
+    elif type(symbol.identifier_type.contents) == Function:
+        return function_call_expression(symbol.identifier_name)
 
     right = ASTNode(Token(TokenType.LEFTVALUE_IDENTIFIER, ident), None, None, None)
 

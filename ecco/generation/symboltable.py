@@ -17,6 +17,7 @@ class SymbolTableEntry:
 
         self.next: Optional[SymbolTableEntry] = None
 
+    @property
     def ntype(self) -> NumberType:
         if type(self.identifier_type.contents) == Number:
             return self.identifier_type.contents.ntype

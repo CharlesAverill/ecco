@@ -13,9 +13,11 @@ def function_declaration_statement() -> ASTNode:
         ASTNode: AST containing entire program within function
     """
     from .statement import match_token, parse_statements
-    from ..ecco import GLOBAL_SYMBOL_TABLE
+    from ..ecco import GLOBAL_SYMBOL_TABLE, GLOBAL_SCANNER
 
-    match_token(TokenType.VOID)
+    return_type: TokenType = match_token(
+        [TokenType.VOID, TokenType.INT, TokenType.CHAR]
+    )[1]
     identifier: Union[str, int] = match_token(TokenType.IDENTIFIER)[0]
     if type(identifier) != str:
         raise EccoInternalTypeError(
@@ -27,8 +29,10 @@ def function_declaration_statement() -> ASTNode:
         raise EccoIdentifierError(
             f'Function with name "{identifier}" already defined in this scope'
         )
+
+    GLOBAL_SCANNER.current_function_name = identifier
     GLOBAL_SYMBOL_TABLE[identifier] = SymbolTableEntry(
-        identifier, Type(TokenType.FUNCTION, Function(TokenType.VOID))
+        identifier, Type(TokenType.FUNCTION, Function(return_type))
     )
 
     match_token(TokenType.LEFT_PARENTHESIS)

@@ -12,6 +12,9 @@ from .ecco_token import Token, TokenType
 
 
 class Scanner:
+
+    current_function_name: str = ""
+
     def __init__(self, input_fn: str):
         """A class for scanning in Tokens
 

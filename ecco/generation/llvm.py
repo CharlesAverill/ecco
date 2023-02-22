@@ -1,8 +1,9 @@
 from typing import List, Optional
 
 from ..scanning import Token, TokenType
-from ..utils import EccoFatalException, EccoInternalTypeError
+from ..utils import EccoFatalException, EccoInternalTypeError, EccoIdentifierError
 from .llvmstackentry import LLVMStackEntry
+from .symboltable import SymbolTableEntry
 from .llvmvalue import LLVMValue, LLVMValueType
 from .types import NumberType, Function, Number
 from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE
@@ -135,7 +136,6 @@ def llvm_ensure_registers_loaded(
 
 def llvm_int_resize(register: LLVMValue, new_width: NumberType):
     register = llvm_ensure_registers_loaded([register])[0]
-    print(register.number_type)
 
     op = "zext" if int(new_width) > int(register.number_type.byte_width) else "trunc"
 
@@ -278,8 +278,6 @@ def llvm_binary_arithmetic(
                    is guaranteed to be loaded
     """
     out_vr: LLVMValue
-
-    print(left_vr.number_type, right_vr.number_type)
 
     if int(left_vr.number_type) < int(right_vr.number_type):
         left_vr = llvm_int_resize(left_vr, right_vr.number_type)
@@ -469,6 +467,10 @@ def llvm_print_int(reg: LLVMValue) -> None:
         reg (LLVMValue): LLVMValue containing the register number of the
                          integer to print
     """
+    print(reg)
+    print(LLVM_LOADED_REGISTERS)
+    reg = llvm_ensure_registers_loaded([reg])[0]
+
     get_next_local_virtual_register()
 
     LLVM_OUT_FILE.writelines(
@@ -569,4 +571,57 @@ def llvm_function_preamble(function_name: str) -> None:
 
 
 def llvm_function_postamble() -> None:
-    LLVM_OUT_FILE.writelines([TAB, "ret void", NEWLINE, "}", NEWLINE, NEWLINE])
+    LLVM_OUT_FILE.writelines(["}", NEWLINE, NEWLINE])
+
+
+def llvm_return(return_value: LLVMValue, function_name: str) -> None:
+    entry: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[function_name]
+    if not entry:
+        raise EccoIdentifierError(
+            f'Tried to return for undeclared function "{function_name}"'
+        )
+    elif type(entry.identifier_type.contents) != Function:
+        raise EccoFatalException(
+            "",
+            f'Tried to generate return statement for non-function identifier "{function_name}"',
+        )
+
+    if entry.identifier_type.contents.return_type == TokenType.VOID:
+        LLVM_OUT_FILE.writelines([TAB, "ret void", NEWLINE])
+    else:
+        return_value = llvm_ensure_registers_loaded([return_value])[0]
+        LLVM_OUT_FILE.writelines(
+            [TAB, f"ret {return_value.number_type} %{return_value.int_value}", NEWLINE]
+        )
+
+
+def llvm_call_function(argument: LLVMValue, function_name: str) -> LLVMValue:
+    out: LLVMValue = LLVMValue(LLVMValueType.NONE)
+
+    entry: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[function_name]
+    if not entry:
+        raise EccoIdentifierError(
+            f'Tried to generate call for undeclared function "{function_name}"'
+        )
+    elif type(entry.identifier_type.contents) != Function:
+        raise EccoFatalException(
+            "",
+            f'Tried to call non-function identifier "{function_name}" as function',
+        )
+
+    LLVM_OUT_FILE.write(TAB)
+
+    call_type: str = "void"
+    if entry.identifier_type.contents.return_type != TokenType.VOID:
+        out = LLVMValue(
+            LLVMValueType.VIRTUAL_REGISTER,
+            get_next_local_virtual_register(),
+            NumberType.from_tokentype(entry.identifier_type.contents.return_type),
+        )
+        LLVM_OUT_FILE.writelines([f"{out.int_value} = "])
+        call_type = str(out.number_type)
+        LLVM_LOADED_REGISTERS.append(out)
+
+    LLVM_OUT_FILE.writelines([f"call {call_type} () @{function_name}()", NEWLINE])
+
+    return out

@@ -1,0 +1,11 @@
+int fred() {
+    print 5;
+    return 20;
+}
+
+int main() {
+    int result;
+    print 6;
+    fred(0);
+    return 0;
+}

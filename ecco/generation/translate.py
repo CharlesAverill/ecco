@@ -50,6 +50,14 @@ def translate_init():
     LLVM_LABEL_INDEX = 0
 
 
+def translate_reinit():
+    global LLVM_VIRTUAL_REGISTER_NUMBER, LLVM_FREE_REGISTERS, LLVM_LOADED_REGISTERS
+
+    LLVM_VIRTUAL_REGISTER_NUMBER = 0
+    LLVM_FREE_REGISTERS = []
+    LLVM_LOADED_REGISTERS = []
+
+
 def get_next_label() -> LLVMValue:
     global LLVM_LABEL_INDEX
     LLVM_LABEL_INDEX += 1
@@ -187,6 +195,8 @@ def ast_to_llvm(
         llvm_function_preamble,
         llvm_function_postamble,
         llvm_stack_allocation,
+        llvm_return,
+        # llvm_call_function,
     )
 
     left_vr: LLVMValue
@@ -243,6 +253,18 @@ def ast_to_llvm(
         return rvalue
     elif root.type == TokenType.ASSIGN:
         return rvalue
+    # Return statement
+    elif root.type == TokenType.RETURN:
+        if type(root.token.value) != str:
+            raise EccoInternalTypeError(
+                "str", str(type(root.token.value)), "translate.py:ast_to_llvm"
+            )
+        llvm_return(left_vr, root.token.value)
+        return LLVMValue(LLVMValueType.NONE)
+    # Function call
+    elif root.type == TokenType.FUNCTION_CALL:
+        pass
+        # return llvm_call_function(left_vr, root.token.value)
     # Print statement
     elif root.type == TokenType.PRINT:
         llvm_print_int(left_vr)
@@ -270,6 +292,7 @@ def generate_llvm() -> None:
     llvm_preamble()
 
     while GLOBAL_SCANNER.current_token.type != TokenType.EOF:
+        translate_reinit()
         root = function_declaration_statement()
         ast_to_llvm(root, LLVMValue(LLVMValueType.NONE), root.type)
 

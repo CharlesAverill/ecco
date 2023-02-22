@@ -68,4 +68,5 @@ class Type:
         elif type(self.contents) == Function:
             if self.contents.return_type == TokenType.VOID:
                 return "void"
+            return str(NumberType.from_tokentype(self.contents.return_type))
         return "brokentype"
