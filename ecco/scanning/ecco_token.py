@@ -42,12 +42,14 @@ class TokenType(Enum):
     FOR = "for"
     PRINT = "print"
     WHILE = "while"
+    RETURN = "return"
 
     # Miscellaneous
     SEMICOLON = ";"
     IDENTIFIER = "%identifier"
     LEFTVALUE_IDENTIFIER = "%leftvalue identifier"
     FUNCTION = "%function"
+    FUNCTION_CALL = "%function call"
     LEFT_BRACE = "{"
     RIGHT_BRACE = "}"
     LEFT_PARENTHESIS = "("

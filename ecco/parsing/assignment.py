@@ -1,7 +1,8 @@
 from .ecco_ast import ASTNode
 from ..scanning import TokenType, Token
 from ..utils import EccoInternalTypeError, EccoFatalException
-from .expression import parse_binary_expression
+from .expression import parse_binary_expression, function_call_expression
+from ..generation.types import Function
 
 
 def assignment_statement() -> ASTNode:
@@ -31,6 +32,8 @@ def assignment_statement() -> ASTNode:
 
     if GLOBAL_SYMBOL_TABLE[ident] is None:
         raise EccoFatalException("", f'Undefined variable "{ident}"')
+    elif type(GLOBAL_SYMBOL_TABLE[ident].identifier_type.contents) == Function:
+        return function_call_expression()
 
     right = ASTNode(Token(TokenType.LEFTVALUE_IDENTIFIER, ident), None, None, None)
 

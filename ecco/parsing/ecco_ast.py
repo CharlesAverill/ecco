@@ -2,8 +2,13 @@ from ..scanning import Token
 from copy import deepcopy
 from typing import Optional
 
+from ..generation.types import NumberType
+
 
 class ASTNode:
+
+    function_return_type: Optional[NumberType] = None
+
     def __init__(
         self,
         from_token: Token,

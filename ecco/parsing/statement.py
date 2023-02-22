@@ -5,6 +5,7 @@ from ..utils import EccoSyntaxError, EccoFatalException
 from typing import Optional, Union, List, Tuple
 from .declaration import declaration_statement
 from .assignment import assignment_statement
+from ..generation.symboltable import SymbolTableEntry
 
 
 def match_token(
@@ -128,6 +129,14 @@ def for_statement() -> ASTNode:
     return out
 
 
+def return_statement() -> ASTNode:
+    from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
+
+    ident: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[
+        GLOBAL_SCANNER.current_function_name
+    ]
+
+
 def parse_statements() -> ASTNode:
     from ..ecco import GLOBAL_SCANNER
 
@@ -160,6 +169,8 @@ def parse_statements() -> ASTNode:
             match_token(TokenType.RIGHT_BRACE)
             match_semicolon = False
             return_left = True
+        elif GLOBAL_SCANNER.current_token.type == TokenType.RETURN:
+            root = return_statement()
         else:
             raise EccoSyntaxError(
                 f'Unexpected token "{str(GLOBAL_SCANNER.current_token.type)}"'

@@ -262,7 +262,6 @@ def generate_llvm() -> None:
 
     from .llvm import (
         llvm_preamble,
-        llvm_stack_allocation,
         llvm_postamble,
     )
     from ..parsing import function_declaration_statement

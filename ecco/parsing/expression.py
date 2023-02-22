@@ -1,10 +1,18 @@
 from typing import Dict
 
 from ..scanning import Token, TokenType
-from ..utils import EccoSyntaxError, EccoEOFMissingSemicolonError, EccoIdentifierError
+from ..utils import (
+    EccoSyntaxError,
+    EccoEOFMissingSemicolonError,
+    EccoIdentifierError,
+    EccoInternalTypeError,
+)
 from .ecco_ast import ASTNode
 from typing import Optional
 from ..generation.symboltable import SymbolTableEntry
+from .statement import match_token
+
+from ..generation.types import Function, Number
 
 OPERATOR_PRECEDENCE: Dict[TokenType, int] = {
     TokenType.PLUS: 12,
@@ -43,9 +51,12 @@ def parse_terminal_node() -> ASTNode:
                 f'Undeclared variable "{GLOBAL_SCANNER.current_token.value}"'
             )
 
-        out = ASTNode(
-            Token(TokenType.IDENTIFIER, ident.identifier_name), None, None, None
-        )
+        if type(ident.identifier_type.contents) == Function:
+            out = function_call_expression()
+        else:
+            out = ASTNode(
+                Token(TokenType.IDENTIFIER, ident.identifier_name), None, None, None
+            )
     elif GLOBAL_SCANNER.current_token.type == TokenType.EOF:
         raise EccoEOFMissingSemicolonError()
     else:
@@ -54,6 +65,42 @@ def parse_terminal_node() -> ASTNode:
         )
 
     GLOBAL_SCANNER.scan()
+    return out
+
+
+def function_call_expression() -> ASTNode:
+    from ..ecco import GLOBAL_SYMBOL_TABLE, GLOBAL_SCANNER
+
+    # By the time we're executing code on the inside of function_call_expression,
+    # we've already scanned in an identifier
+    if type(GLOBAL_SCANNER.current_token.value) != str:
+        raise EccoInternalTypeError(
+            "str",
+            str(type(GLOBAL_SCANNER.current_token.value)),
+            "expression.py:function_call_expression",
+        )
+    ident: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[
+        GLOBAL_SCANNER.current_token.value
+    ]
+    if not ident:
+        raise EccoIdentifierError(
+            f'Tried to call undeclared function "{GLOBAL_SCANNER.current_token.value}"'
+        )
+    elif type(ident.identifier_type.contents) != Function:
+        raise EccoIdentifierError(
+            "Tried to call function with identifier bound to number value"
+        )
+
+    match_token(TokenType.LEFT_PARENTHESIS)
+
+    # Functions will take one argument for now
+    single_argument: ASTNode = parse_binary_expression(0)
+
+    match_token(TokenType.RIGHT_PARENTHESIS)
+
+    out: ASTNode = ASTNode(Token(TokenType.FUNCTION_CALL), single_argument)
+    out.function_return_type = ident.ntype()
+
     return out
 
 

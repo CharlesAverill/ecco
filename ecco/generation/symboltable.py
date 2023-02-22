@@ -1,6 +1,7 @@
 from typing import Optional, List, Callable
 from abc import ABC, abstractmethod
-from .types import Type
+from .types import Type, NumberType, Number
+from ..utils import EccoInternalTypeError
 
 
 # https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV_offset_basis
@@ -16,9 +17,15 @@ class SymbolTableEntry:
 
         self.next: Optional[SymbolTableEntry] = None
 
-    @property
-    def value(self):
-        return self.identifier_type.contents.ntype
+    def ntype(self) -> NumberType:
+        if type(self.identifier_type.contents) == Number:
+            return self.identifier_type.contents.ntype
+
+        raise EccoInternalTypeError(
+            "Number",
+            str(type(self.identifier_type.contents)),
+            "symboltable.py:SymbolTableEntry.ntype",
+        )
 
 
 class SymbolTableInterface(ABC):
