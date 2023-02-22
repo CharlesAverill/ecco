@@ -4,7 +4,6 @@ int fred() {
 }
 
 int main() {
-    int result;
     print 6;
     fred(0);
     print fred(0) + 15;
