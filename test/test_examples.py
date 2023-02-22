@@ -61,5 +61,5 @@ def test8():
     _tester("test8", "7")
 
 
-def fibonacci():
-    _tester("fibonacci", "120")
+def factorial():
+    _tester("factorial", "120")
