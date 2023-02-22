@@ -59,3 +59,7 @@ def test7():
 
 def test8():
     _tester("test8", "7")
+
+
+def fibonacci():
+    _tester("fibonacci", "120")

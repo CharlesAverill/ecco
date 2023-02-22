@@ -584,7 +584,7 @@ def llvm_function_postamble(function_name: str) -> None:
     LLVM_OUT_FILE.writelines([TAB, "ret "])
 
     if entry.identifier_type.contents.return_type == TokenType.VOID:
-        LLVM_OUT_FILE.write("void")
+        LLVM_OUT_FILE.write("void" + NEWLINE)
     else:
         LLVM_OUT_FILE.writelines(
             [
@@ -593,7 +593,7 @@ def llvm_function_postamble(function_name: str) -> None:
             ]
         )
 
-    LLVM_OUT_FILE.writelines(["}", NEWLINE])
+    LLVM_OUT_FILE.writelines(["}", NEWLINE, NEWLINE])
 
 
 def llvm_return(return_value: LLVMValue, function_name: str) -> None:
@@ -615,7 +615,7 @@ def llvm_return(return_value: LLVMValue, function_name: str) -> None:
         LLVM_OUT_FILE.writelines(
             [TAB, f"ret {return_value.number_type} %{return_value.int_value}", NEWLINE]
         )
-        
+
     get_next_local_virtual_register()
 
 
