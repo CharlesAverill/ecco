@@ -150,15 +150,10 @@ def return_statement() -> ASTNode:
     if ident.identifier_type.ttype == TokenType.VOID:
         return ASTNode(Token(TokenType.RETURN, GLOBAL_SCANNER.current_function_name))
 
-    try:
-        return ASTNode(
-            Token(TokenType.RETURN, GLOBAL_SCANNER.current_function_name),
-            parse_binary_expression(0),
-        )
-    except EccoSyntaxError:
-        raise EccoSyntaxError(
-            'Missing return statement in function "{GLOBAL_SCANNER.current_function_name"'
-        )
+    return ASTNode(
+        Token(TokenType.RETURN, GLOBAL_SCANNER.current_function_name),
+        parse_binary_expression(0),
+    )
 
 
 def parse_statements() -> ASTNode:
