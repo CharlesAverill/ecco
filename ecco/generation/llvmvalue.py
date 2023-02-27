@@ -59,4 +59,7 @@ class LLVMValue:
         append: str = ""
         if self.value_type == LLVMValueType.VIRTUAL_REGISTER:
             append = f": %{self.int_value}"
-        return f"LLVMValue ({self.value_type} {self.number_type}{self.references - 1})" + append
+        return (
+            f"LLVMValue ({self.value_type} {self.number_type}{self.pointer_depth - 1})"
+            + append
+        )

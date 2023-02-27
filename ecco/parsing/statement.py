@@ -186,7 +186,7 @@ def parse_statements() -> ASTNode:
             root = print_statement()
         elif GLOBAL_SCANNER.current_token.type.is_type():
             declaration_statement()
-            root.token.type = TokenType.UNKNOWN_TOKEN
+            root = ASTNode(Token(TokenType.UNKNOWN_TOKEN))
         elif GLOBAL_SCANNER.current_token.type == TokenType.IDENTIFIER:
             root = assignment_statement()
         elif GLOBAL_SCANNER.current_token.type == TokenType.IF:

@@ -42,3 +42,15 @@ class ASTNode:
     @property
     def type(self):
         return self.token.type
+
+    def __str__(self):
+        out = "ASTNode:\n"
+        out += f"\tData: {self.token.type} {str(self.token.value) if self.token.value else ''}\n"
+        if self.left:
+            out += f"\tLeft: {self.left.token.type} {str(self.left.token.value) if self.left.token.value else ''}\n"
+        if self.middle:
+            out += f"\tMiddle: {self.middle.token.type} {str(self.middle.token.value) if self.middle.token.value else ''}\n"
+        if self.right:
+            out += f"\tRight: {self.right.token.type} {str(self.right.token.value) if self.right.token.value else ''}\n"
+
+        return out

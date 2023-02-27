@@ -287,6 +287,7 @@ def ast_to_llvm(
     elif root.type == TokenType.PRINT:
         llvm_print_int(left_vr)
     else:
+        print(root)
         raise EccoFatalException(
             "", f'Unknown token encountered in ast_to_llvm: "{str(root.token)}"'
         )

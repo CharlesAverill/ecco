@@ -9,7 +9,9 @@ int main() {
     c = 12; print c;
     f = &c; d = *f; print d;
 
-    int g; int *h; int **j;
-
-    return 0;
+    int g; int *h; int **j; int ***k;
+    g = 5; h = &g; j = &h; k = &j;
+    int n; int *m; int **l;
+    l = *k; m = *l; n = *m;
+    print n;
 }

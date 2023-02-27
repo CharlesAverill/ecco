@@ -364,7 +364,9 @@ def llvm_store_constant(value: int) -> LLVMValue:
         ]
     )
 
-    out = llvm_ensure_registers_loaded([LLVMValue(LLVMValueType.VIRTUAL_REGISTER, store_reg, pointer_depth=1)])[0]
+    out = llvm_ensure_registers_loaded(
+        [LLVMValue(LLVMValueType.VIRTUAL_REGISTER, store_reg, pointer_depth=1)]
+    )[0]
     return out
 
 
@@ -399,14 +401,33 @@ def llvm_load_global(name: str) -> LLVMValue:
     out_vr: int = get_next_local_virtual_register()
 
     ste = GLOBAL_SYMBOL_TABLE[name]
-    if ste and type(ste.identifier_type.contents) == Number:
+    if not ste:
+        raise EccoFatalException("", "Tried to load nonexistent global variable")
+    elif type(ste.identifier_type.contents) != Number:
+        raise EccoInternalTypeError(
+            "Number",
+            str(type(ste.identifier_type.contents)),
+            "llvm.py:llvm_load_global",
+        )
+    else:
         glob_ntype = ste.identifier_type.contents.ntype
 
     LLVM_OUT_FILE.writelines(
-        [TAB, f"%{out_vr} = load {glob_ntype}{ste.identifier_type.contents.references[:-1]}, {glob_ntype}{ste.identifier_type.contents.references} @{name}", NEWLINE]
+        [
+            TAB,
+            f"%{out_vr} = load {glob_ntype}{ste.identifier_type.contents.references[:-1]}, {glob_ntype}{ste.identifier_type.contents.references} @{name}",
+            NEWLINE,
+        ]
     )
 
-    add_loaded_register(LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr, glob_ntype, ste.identifier_type.contents.pointer_depth - 1))
+    add_loaded_register(
+        LLVMValue(
+            LLVMValueType.VIRTUAL_REGISTER,
+            out_vr,
+            glob_ntype,
+            ste.identifier_type.contents.pointer_depth - 1,
+        )
+    )
 
     return get_last_loaded_register()
 
@@ -431,7 +452,15 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
             f"Undeclared identifier {name} was allowed to propagate to LLVM generation",
         )
 
-    rvalue = llvm_ensure_registers_loaded([rvalue])[0]
+    if type(ste.identifier_type.contents) != Number:
+        raise EccoFatalException("", "Tried to store data into non-number")
+
+    rvalue = llvm_ensure_registers_loaded([rvalue], ste.identifier_type.contents.pointer_depth - 1)[0]
+
+    if rvalue.pointer_depth != ste.identifier_type.contents.pointer_depth - 1:
+        raise EccoFatalException(
+            "", "Pointer mismatch when trying to save to global variable"
+        )
 
     if type(ste.identifier_type.contents) == Number:
         LLVM_OUT_FILE.writelines(
@@ -666,12 +695,10 @@ def llvm_get_address(identifier: str):
             "",
             f"Undeclared identifier {identifier} was allowed to propagate to LLVM generation",
         )
-    elif ste.identifier_type.type != Number:
+    elif type(ste.identifier_type.contents) != Number:
         raise EccoInternalTypeError(
             "Number", str(ste.identifier_type.type), "llvm.py:llvm_get_address"
         )
-
-    # store i32* @a, i32** %2, align 8
 
     free_reg = get_next_local_virtual_register()
     lv = LLVMValue(
@@ -703,10 +730,19 @@ def llvm_get_address(identifier: str):
 
 
 def llvm_dereference(value: LLVMValue):
-    out = LLVMValue(LLVMValueType.VIRTUAL_REGISTER, get_next_local_virtual_register(), value.number_type, value.pointer_depth - 1)
+    out = LLVMValue(
+        LLVMValueType.VIRTUAL_REGISTER,
+        get_next_local_virtual_register(),
+        value.number_type,
+        value.pointer_depth - 1,
+    )
 
-    LLVM_OUT_FILE.writelines([
-        TAB, f"%{out.int_value} = load {out.number_type}{out.references}, {value.number_type}{value.references} %{value.int_value}", NEWLINE
-    ])
+    LLVM_OUT_FILE.writelines(
+        [
+            TAB,
+            f"%{out.int_value} = load {out.number_type}{out.references}, {value.number_type}{value.references} %{value.int_value}",
+            NEWLINE,
+        ]
+    )
 
     return out

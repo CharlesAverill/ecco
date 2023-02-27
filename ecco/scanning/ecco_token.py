@@ -90,6 +90,7 @@ class TokenType(Enum):
         for t_type in TokenType:
             if str(t_type) == c:
                 return t_type
+
         return TokenType.UNKNOWN_TOKEN
 
     @staticmethod
