@@ -6,8 +6,10 @@ int main() {
     a = 18; print a;
     e = &a; b = *e; print b;
 
-    //c = 12; print c;
-    //f = &c; d = *f; print d;
+    c = 12; print c;
+    f = &c; d = *f; print d;
+
+    int g; int *h; int **j;
 
     return 0;
 }

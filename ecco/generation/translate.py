@@ -211,6 +211,7 @@ def ast_to_llvm(
         llvm_return,
         llvm_call_function,
         llvm_get_address,
+        llvm_dereference,
     )
 
     left_vr: LLVMValue
@@ -281,7 +282,7 @@ def ast_to_llvm(
     elif root.type == TokenType.AMPERSAND:
         return llvm_get_address(str(root.token.value))
     elif root.type == TokenType.REFERENCE:
-        pass
+        return llvm_dereference(left_vr)
     # Print statement
     elif root.type == TokenType.PRINT:
         llvm_print_int(left_vr)

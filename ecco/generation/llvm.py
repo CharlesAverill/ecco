@@ -700,3 +700,13 @@ def llvm_get_address(identifier: str):
     )
 
     return lv
+
+
+def llvm_dereference(value: LLVMValue):
+    out = LLVMValue(LLVMValueType.VIRTUAL_REGISTER, get_next_local_virtual_register(), value.number_type, value.pointer_depth - 1)
+
+    LLVM_OUT_FILE.writelines([
+        TAB, f"%{out.int_value} = load {out.number_type}{out.references}, {value.number_type}{value.references} %{value.int_value}", NEWLINE
+    ])
+
+    return out
