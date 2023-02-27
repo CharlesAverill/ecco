@@ -1,7 +1,7 @@
 from ..scanning import TokenType, Token
 from ..utils import EccoInternalTypeError, EccoIdentifierError
 from ..generation.symboltable import SymbolTableEntry
-from ..generation.types import Type, Function, Number, NumberType
+from ..generation.types import Type, Function, Number
 from .ecco_ast import ASTNode
 from typing import Union
 
@@ -49,11 +49,11 @@ def declaration_statement() -> None:
     Raises:
         EccoInternalTypeError: If an incorrect Token value is encountered
     """
-    from .statement import match_token
+    from .statement import match_token, match_type
     from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
     from ..generation.llvm import llvm_declare_global
 
-    ttype = match_token([TokenType.INT, TokenType.CHAR])[1]
+    num = match_type()
 
     ident = match_token(TokenType.IDENTIFIER)[0]
 
@@ -64,15 +64,14 @@ def declaration_statement() -> None:
             "ecco/parsing/declaration.py:declaration_statement",
         )
 
+    num.pointer_depth += 1
     GLOBAL_SYMBOL_TABLE.update(
         ident,
-        SymbolTableEntry(
-            ident, Type(ttype, Number(NumberType.from_tokentype(ttype), 0))
-        ),
+        SymbolTableEntry(ident, Type(num.ntype.to_tokentype(), num)),
     )
 
     ste = GLOBAL_SYMBOL_TABLE[ident]
     if ste and type(ste.identifier_type.contents) == Number:
-        llvm_declare_global(ident, 0, ste.identifier_type.contents.ntype)
+        llvm_declare_global(ident, 0, num)
     else:
         raise EccoIdentifierError("Failed to insert identifier into GST")

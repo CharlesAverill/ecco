@@ -80,7 +80,7 @@ def llvm_postamble():
 
 
 def llvm_ensure_registers_loaded(
-    registers_to_check: List[LLVMValue],
+    registers_to_check: List[LLVMValue], load_level: int = 0
 ) -> List[LLVMValue]:
     """Checks if the provided registers are loaded. If not, they will be loaded
     and the new register values will be returned.  If none of or only some of
@@ -96,20 +96,18 @@ def llvm_ensure_registers_loaded(
         List[LLVMValue]: A list of LLVMValues containing loaded register numbers
                          corresponding to the input registers
     """
-    from .translate import LLVM_LOADED_REGISTERS
 
     found_registers: List[bool] = [False] * len(registers_to_check)
 
     # Check if our input registers are loaded
-    for loaded_register in LLVM_LOADED_REGISTERS:
-        for i, reg in enumerate(registers_to_check):
-            # Mark as loaded
-            if reg.int_value == loaded_register.int_value:
-                found_registers[i] = True
+    for i, reg in enumerate(registers_to_check):
+        # Mark as loaded
+        if reg.pointer_depth == load_level:
+            found_registers[i] = True
 
-            # If all of our registers are loaded, we can just return them
-            if found_registers.count(True) == len(registers_to_check):
-                return registers_to_check
+        # If all of our registers are loaded, we can just return them
+        if found_registers.count(True) == len(registers_to_check):
+            return registers_to_check
 
     # Load any unloaded registers
     loaded_registers: List[LLVMValue] = []
@@ -121,12 +119,14 @@ def llvm_ensure_registers_loaded(
                     LLVMValueType.VIRTUAL_REGISTER,
                     new_reg,
                     registers_to_check[i].number_type,
+                    registers_to_check[i].pointer_depth - 1,
                 )
             )
             LLVM_OUT_FILE.writelines(
                 [
                     TAB,
-                    f"%{new_reg} = load {registers_to_check[i].number_type}, {registers_to_check[i].number_type}* %{registers_to_check[i].int_value}",
+                    f"%{new_reg} = load {registers_to_check[i].number_type}{loaded_registers[-1].references},"
+                    f" {registers_to_check[i].number_type}{registers_to_check[i].references} %{registers_to_check[i].int_value}",
                     NEWLINE,
                 ]
             )
@@ -364,20 +364,27 @@ def llvm_store_constant(value: int) -> LLVMValue:
         ]
     )
 
-    return LLVMValue(
-        LLVMValueType.VIRTUAL_REGISTER,
-        store_reg,
-    )
+    out = llvm_ensure_registers_loaded([LLVMValue(LLVMValueType.VIRTUAL_REGISTER, store_reg, pointer_depth=1)])[0]
+    return out
 
 
-def llvm_declare_global(name: str, value: int = 0, ntype: NumberType = NumberType.INT):
+def llvm_declare_global(
+    name: str, _value: int = 0, num: Number = Number(NumberType.INT, 0)
+):
     """Declare a global variable
 
     Args:
         name (str): Name of global variable
-        value (int, optional): Value to set variable to. Defaults to 0.
+        _value (int, optional): Value to set variable to. Defaults to 0.
     """
-    LLVM_GLOBALS_FILE.writelines([f"@{name} = global {ntype} {value}", NEWLINE])
+    value: str = "null" if num.pointer_depth - 1 > 0 else str(_value)
+
+    LLVM_GLOBALS_FILE.writelines(
+        [
+            f"@{name} = global {num.ntype}{'*' * (num.pointer_depth - 1)} {value}",
+            NEWLINE,
+        ]
+    )
 
 
 def llvm_load_global(name: str) -> LLVMValue:
@@ -396,10 +403,10 @@ def llvm_load_global(name: str) -> LLVMValue:
         glob_ntype = ste.identifier_type.contents.ntype
 
     LLVM_OUT_FILE.writelines(
-        [TAB, f"%{out_vr} = load {glob_ntype}, {glob_ntype}* @{name}", NEWLINE]
+        [TAB, f"%{out_vr} = load {glob_ntype}{ste.identifier_type.contents.references[:-1]}, {glob_ntype}{ste.identifier_type.contents.references} @{name}", NEWLINE]
     )
 
-    add_loaded_register(LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr, glob_ntype))
+    add_loaded_register(LLVMValue(LLVMValueType.VIRTUAL_REGISTER, out_vr, glob_ntype, ste.identifier_type.contents.pointer_depth - 1))
 
     return get_last_loaded_register()
 
@@ -424,13 +431,14 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
             f"Undeclared identifier {name} was allowed to propagate to LLVM generation",
         )
 
-    rvalue.int_value = llvm_ensure_registers_loaded([rvalue])[0].int_value
+    rvalue = llvm_ensure_registers_loaded([rvalue])[0]
 
     if type(ste.identifier_type.contents) == Number:
         LLVM_OUT_FILE.writelines(
             [
                 TAB,
-                f"store {rvalue.number_type} %{rvalue.int_value}, {ste.identifier_type.contents.ntype}* @{name}",
+                f"store {rvalue.number_type}{rvalue.references} %{rvalue.int_value}, "
+                f"{ste.identifier_type.contents.ntype}{ste.identifier_type.contents.references} @{name}",
                 NEWLINE,
             ]
         )
@@ -453,7 +461,7 @@ def llvm_stack_allocation(entries: List[LLVMStackEntry]):
         LLVM_OUT_FILE.writelines(
             [
                 TAB,
-                f"%{entry.register.int_value} = alloca i32, align {entry.align_bytes}",
+                f"%{entry.register.int_value} = alloca {entry.register.number_type}{entry.register.references}, align {entry.align_bytes}",
                 NEWLINE,
             ]
         )
@@ -468,14 +476,14 @@ def llvm_print_int(reg: LLVMValue) -> None:
         reg (LLVMValue): LLVMValue containing the register number of the
                          integer to print
     """
-    reg = llvm_ensure_registers_loaded([reg])[0]
+    reg = llvm_ensure_registers_loaded([reg], reg.pointer_depth)[0]
 
     get_next_local_virtual_register()
 
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @print_int_fstring , i32 0, i32 0), {reg.number_type} %{reg.int_value})",
+            f"call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @print_int_fstring , i32 0, i32 0), {reg.number_type}{reg.references} %{reg.int_value})",
             NEWLINE,
         ]
     )
@@ -649,3 +657,46 @@ def llvm_call_function(argument: LLVMValue, function_name: str) -> LLVMValue:
     LLVM_OUT_FILE.writelines([f"call {call_type} () @{function_name}()", NEWLINE])
 
     return out
+
+
+def llvm_get_address(identifier: str):
+    ste = GLOBAL_SYMBOL_TABLE[identifier]
+    if not ste:
+        raise EccoFatalException(
+            "",
+            f"Undeclared identifier {identifier} was allowed to propagate to LLVM generation",
+        )
+    elif ste.identifier_type.type != Number:
+        raise EccoInternalTypeError(
+            "Number", str(ste.identifier_type.type), "llvm.py:llvm_get_address"
+        )
+
+    # store i32* @a, i32** %2, align 8
+
+    free_reg = get_next_local_virtual_register()
+    lv = LLVMValue(
+        LLVMValueType.VIRTUAL_REGISTER,
+        free_reg,
+        ste.identifier_type.contents.ntype,
+        ste.identifier_type.contents.pointer_depth,
+    )
+    llvm_stack_allocation(
+        [
+            LLVMStackEntry(
+                lv,
+                4,
+            ),
+        ]
+    )
+    lv.pointer_depth += 1
+
+    LLVM_OUT_FILE.writelines(
+        [
+            TAB,
+            f"store {ste.identifier_type.llvm_repr}{ste.identifier_type.contents.references} @{identifier}, "
+            f"{ste.identifier_type.llvm_repr}{lv.references} %{free_reg}",
+            NEWLINE,
+        ]
+    )
+
+    return lv

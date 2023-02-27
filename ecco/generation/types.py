@@ -34,6 +34,13 @@ class NumberType(Enum):
             return NumberType.CHAR
         return None
 
+    def to_tokentype(self):
+        if int(self) == int(NumberType.INT):
+            return TokenType.INT
+        elif int(self) == int(NumberType.CHAR):
+            return TokenType.CHAR
+        return None
+
     def __str__(self) -> str:
         return self.value
 
@@ -42,9 +49,14 @@ class NumberType(Enum):
 
 
 class Number:
-    def __init__(self, ntype: NumberType, value: int):
+    def __init__(self, ntype: NumberType, value: int, pointer_depth: int = 0):
         self.ntype: NumberType = ntype
         self.value: int = value
+        self.pointer_depth = pointer_depth
+
+    @property
+    def references(self) -> str:
+        return "*" * self.pointer_depth
 
 
 class Function:

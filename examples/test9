@@ -1,0 +1,13 @@
+int main() {
+    int a; int b;
+    int c; int d;
+    int *e; int *f;
+
+    a = 18; print a;
+    e = &a; b = *e; print b;
+
+    //c = 12; print c;
+    //f = &c; d = *f; print d;
+
+    return 0;
+}

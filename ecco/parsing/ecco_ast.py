@@ -1,6 +1,7 @@
 from ..scanning import Token
 from copy import deepcopy
 from typing import Optional
+from ..generation.types import Number, NumberType
 
 
 class ASTNode:
@@ -10,6 +11,7 @@ class ASTNode:
         left: Optional["ASTNode"] = None,
         middle: Optional["ASTNode"] = None,
         right: Optional["ASTNode"] = None,
+        tree_type: Number = Number(NumberType.INT, 0),
     ):
         """A class for storing Abstract Syntax Tree data
 
@@ -34,6 +36,8 @@ class ASTNode:
             self.right.parent = self
 
         self.parent: ASTNode
+
+        self.tree_type: Number = tree_type
 
     @property
     def type(self):

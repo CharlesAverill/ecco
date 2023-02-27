@@ -25,6 +25,10 @@ class TokenType(Enum):
     GT = ">"
     GEQ = ">="
 
+    # Pointers
+    REFERENCE = "%reference"
+    AMPERSAND = "&"
+
     # Literals
     INTEGER_LITERAL = "%integer literal"
 

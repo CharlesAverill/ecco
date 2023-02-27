@@ -63,3 +63,10 @@ def test8():
 
 def factorial():
     _tester("factorial", "120")
+
+
+def test9():
+    _tester("test9", """18
+18
+12
+12""")

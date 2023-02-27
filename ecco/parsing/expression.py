@@ -69,6 +69,40 @@ def parse_terminal_node() -> ASTNode:
     return out
 
 
+def prefix_operator_passthrough() -> ASTNode:
+    from ..ecco import GLOBAL_SCANNER
+
+    out: ASTNode
+
+    if GLOBAL_SCANNER.current_token.type == TokenType.AMPERSAND:
+        GLOBAL_SCANNER.scan()
+        out = prefix_operator_passthrough()
+
+        if out.type != TokenType.IDENTIFIER:
+            raise EccoSyntaxError(
+                "Address operators must be succeeded by variable names"
+            )
+
+        out.token.type = TokenType.AMPERSAND
+
+        out.tree_type.pointer_depth += 1
+    elif GLOBAL_SCANNER.current_token.type == TokenType.STAR:
+        GLOBAL_SCANNER.scan()
+        out = prefix_operator_passthrough()
+
+        if out.type not in [TokenType.IDENTIFIER, TokenType.REFERENCE]:
+            raise EccoSyntaxError(
+                "Dereference operators must be succeeded by dereference operators or variable names"
+            )
+
+        out.tree_type.pointer_depth -= 1
+        out = ASTNode(Token(TokenType.REFERENCE), out)
+    else:
+        out = parse_terminal_node()
+
+    return out
+
+
 def function_call_expression(function_name_override: str = "") -> ASTNode:
     from ..ecco import GLOBAL_SYMBOL_TABLE, GLOBAL_SCANNER
 
@@ -143,9 +177,9 @@ def parse_binary_expression(previous_token_precedence: int) -> ASTNode:
     right: ASTNode
     node_type: TokenType
 
-    # Get an integer literal, and scan the next token into
-    # GLOBAL_SCANNER.current_token
-    left = parse_terminal_node()
+    # Get an integer literal, variable instance, or function call, and scan the
+    # next token into GLOBAL_SCANNER.current_token
+    left = prefix_operator_passthrough()  # parse_terminal_node()
 
     # Reached the end of a statement
     node_type = GLOBAL_SCANNER.current_token.type

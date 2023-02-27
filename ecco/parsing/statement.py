@@ -5,6 +5,7 @@ from typing import Optional, Union, List, Tuple
 from .declaration import declaration_statement
 from .assignment import assignment_statement
 from ..generation.symboltable import SymbolTableEntry
+from ..generation.types import Number, NumberType
 
 
 def match_token(
@@ -34,6 +35,19 @@ def match_token(
     raise EccoSyntaxError(
         f'Expected "{str(tt)}" but got "{str(GLOBAL_SCANNER.current_token.type)}"'
     )
+
+
+def match_type() -> Number:
+    from ..ecco import GLOBAL_SCANNER
+
+    ttype = match_token([TokenType.INT, TokenType.CHAR])[1]
+
+    pointer_depth = 0
+    while GLOBAL_SCANNER.current_token.type == TokenType.STAR:
+        match_token(TokenType.STAR)
+        pointer_depth += 1
+
+    return Number(NumberType.from_tokentype(ttype), 0, pointer_depth)
 
 
 def print_statement() -> ASTNode:
