@@ -72,14 +72,6 @@ class HashTableSymbolTable(SymbolTableInterface):
         """Length of symbol table"""
         return len(self.data)
 
-    def resize(self, factor: int = 2) -> None:
-        """Resizes symbol table by a factor of factor
-
-        Args:
-            factor (int, optional): Factor by which to expand symbol table. Defaults to 2.
-        """
-        self.data += [None] * factor
-
     def update(self, identifier: str, entry: Optional[SymbolTableEntry]) -> bool:
         """Assign a new value to an identifier
 

@@ -35,8 +35,8 @@ def assignment_statement() -> ASTNode:
     symbol: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[ident]
     if symbol is None:
         raise EccoFatalException("", f'Undefined variable "{ident}"')
-    elif type(symbol.identifier_type.contents) == Function:
-        return function_call_expression(symbol.identifier_name)
+    # elif type(symbol.identifier_type.contents) == Function:
+    #     return function_call_expression(symbol.identifier_name)
 
     right = ASTNode(Token(TokenType.LEFTVALUE_IDENTIFIER, ident), None, None, None)
 

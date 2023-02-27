@@ -5,7 +5,7 @@ from typing import Optional, Union, List, Tuple
 from .declaration import declaration_statement
 from .assignment import assignment_statement
 from ..generation.symboltable import SymbolTableEntry
-from ..generation.types import Number, NumberType
+from ..generation.types import Number, NumberType, Function
 
 
 def match_token(
@@ -38,6 +38,11 @@ def match_token(
 
 
 def match_type() -> Number:
+    """Match a type token
+
+    Returns:
+        Number: Number containing data type and pointer depth
+    """
     from ..ecco import GLOBAL_SCANNER
 
     ttype = match_token([TokenType.INT, TokenType.CHAR])[1]
@@ -171,7 +176,7 @@ def return_statement() -> ASTNode:
 
 
 def parse_statements() -> ASTNode:
-    from ..ecco import GLOBAL_SCANNER
+    from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
 
     root: ASTNode = ASTNode(Token(TokenType.UNKNOWN_TOKEN))
     left: Optional[ASTNode] = None
@@ -188,7 +193,14 @@ def parse_statements() -> ASTNode:
             declaration_statement()
             root = ASTNode(Token(TokenType.UNKNOWN_TOKEN))
         elif GLOBAL_SCANNER.current_token.type == TokenType.IDENTIFIER:
-            root = assignment_statement()
+            gse = GLOBAL_SYMBOL_TABLE[GLOBAL_SCANNER.current_token.value]
+            if gse and type(gse.identifier_type.contents) == Number:
+                root = assignment_statement()
+            elif gse and type(gse.identifier_type.contents) == Function:
+                from .expression import function_call_expression
+                ident = GLOBAL_SCANNER.current_token.value
+                match_token(TokenType.IDENTIFIER)
+                root = function_call_expression(ident)
         elif GLOBAL_SCANNER.current_token.type == TokenType.IF:
             root = if_statement()
             match_semicolon = False

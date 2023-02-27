@@ -17,7 +17,6 @@ LLVM_OUT_FILE: TextIO
 LLVM_GLOBALS_FILE: TextIO
 LLVM_VIRTUAL_REGISTER_NUMBER: int
 LLVM_FREE_REGISTERS: List[int]
-LLVM_LOADED_REGISTERS: List[LLVMValue]
 LLVM_LABEL_INDEX: int
 
 
@@ -28,7 +27,7 @@ def translate_init():
         EccoFileError: Raised if an error occurs while opening the output LLVM
                        file
     """
-    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER, LLVM_FREE_REGISTERS, LLVM_LOADED_REGISTERS, LLVM_GLOBALS_FILE, LLVM_LABEL_INDEX
+    global LLVM_OUT_FILE, LLVM_VIRTUAL_REGISTER_NUMBER, LLVM_FREE_REGISTERS, LLVM_GLOBALS_FILE, LLVM_LABEL_INDEX
     from ..ecco import ARGS
 
     try:
@@ -45,17 +44,14 @@ def translate_init():
 
     LLVM_FREE_REGISTERS = []
 
-    LLVM_LOADED_REGISTERS = []
-
     LLVM_LABEL_INDEX = 0
 
 
 def translate_reinit():
-    global LLVM_VIRTUAL_REGISTER_NUMBER, LLVM_FREE_REGISTERS, LLVM_LOADED_REGISTERS
+    global LLVM_VIRTUAL_REGISTER_NUMBER, LLVM_FREE_REGISTERS
 
     LLVM_VIRTUAL_REGISTER_NUMBER = 0
     LLVM_FREE_REGISTERS = []
-    LLVM_LOADED_REGISTERS = []
 
 
 def get_next_label() -> LLVMValue:
@@ -68,16 +64,6 @@ def get_next_local_virtual_register() -> int:
     global LLVM_VIRTUAL_REGISTER_NUMBER
     LLVM_VIRTUAL_REGISTER_NUMBER += 1
     return LLVM_VIRTUAL_REGISTER_NUMBER
-
-
-def add_loaded_register(reg: LLVMValue):
-    global LLVM_LOADED_REGISTERS
-    LLVM_LOADED_REGISTERS.append(reg)
-
-
-def get_last_loaded_register():
-    global LLVM_LOADED_REGISTERS
-    return LLVM_LOADED_REGISTERS[-1]
 
 
 def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStackEntry]:
