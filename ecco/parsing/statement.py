@@ -193,12 +193,13 @@ def parse_statements() -> ASTNode:
             declaration_statement()
             root = ASTNode(Token(TokenType.UNKNOWN_TOKEN))
         elif GLOBAL_SCANNER.current_token.type == TokenType.IDENTIFIER:
-            gse = GLOBAL_SYMBOL_TABLE[GLOBAL_SCANNER.current_token.value]
+            gse = GLOBAL_SYMBOL_TABLE[str(GLOBAL_SCANNER.current_token.value)]
             if gse and type(gse.identifier_type.contents) == Number:
                 root = assignment_statement()
             elif gse and type(gse.identifier_type.contents) == Function:
                 from .expression import function_call_expression
-                ident = GLOBAL_SCANNER.current_token.value
+
+                ident = str(GLOBAL_SCANNER.current_token.value)
                 match_token(TokenType.IDENTIFIER)
                 root = function_call_expression(ident)
         elif GLOBAL_SCANNER.current_token.type == TokenType.IF:

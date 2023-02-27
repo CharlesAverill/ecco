@@ -1,20 +1,29 @@
 from .tester import _tester
 
+
 def test1():
     _tester("test1", "6")
+
 
 def test2():
     _tester("test2", "17")
 
+
 def test3():
-    _tester("test3", """1
+    _tester(
+        "test3",
+        """1
 2
 3
 4
-5""")
+5""",
+    )
+
 
 def test4():
-    _tester("test4", """1
+    _tester(
+        "test4",
+        """1
 1
 1
 1
@@ -22,10 +31,14 @@ def test4():
 1
 1
 1
-1""")
+1""",
+    )
+
 
 def test5():
-    _tester("test5", """1
+    _tester(
+        "test5",
+        """1
 2
 3
 4
@@ -34,11 +47,14 @@ def test5():
 7
 8
 9
-10""")
+10""",
+    )
 
 
 def test6():
-    _tester("test6", """1
+    _tester(
+        "test6",
+        """1
 2
 3
 4
@@ -47,14 +63,18 @@ def test6():
 7
 8
 9
-10""")
+10""",
+    )
 
 
 def test7():
-    _tester("test7", """6
+    _tester(
+        "test7",
+        """6
 5
 5
-35""")
+35""",
+    )
 
 
 def test8():
@@ -66,8 +86,11 @@ def factorial():
 
 
 def test9():
-    _tester("test9", """18
+    _tester(
+        "test9",
+        """18
 18
 12
 12
-5""")
+5""",
+    )

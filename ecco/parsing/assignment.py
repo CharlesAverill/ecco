@@ -1,7 +1,6 @@
 from .ecco_ast import ASTNode
 from ..scanning import TokenType, Token
 from ..utils import EccoInternalTypeError, EccoFatalException
-from ..generation.types import Function
 from typing import Optional
 
 
@@ -16,7 +15,7 @@ def assignment_statement() -> ASTNode:
         ASTNode: ASTNode encoding assignment tree
     """
     from .statement import match_token
-    from .expression import parse_binary_expression, function_call_expression
+    from .expression import parse_binary_expression
     from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
     from ..generation import SymbolTableEntry
 
