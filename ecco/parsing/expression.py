@@ -11,6 +11,7 @@ from .ecco_ast import ASTNode
 from typing import Optional
 from ..generation.symboltable import SymbolTableEntry
 from .statement import match_token
+from .optimization import optimize_AST
 
 from ..generation.types import Function
 
@@ -131,7 +132,7 @@ def function_call_expression(function_name_override: str = "") -> ASTNode:
     match_token(TokenType.LEFT_PARENTHESIS)
 
     # Functions will take one argument for now
-    single_argument: ASTNode = parse_binary_expression(0)
+    single_argument: ASTNode = parse_binary_expression()
 
     match_token(TokenType.RIGHT_PARENTHESIS)
 
@@ -160,7 +161,7 @@ def error_check_precedence(node_type: TokenType) -> int:
     return OPERATOR_PRECEDENCE[node_type]
 
 
-def parse_binary_expression(previous_token_precedence: int) -> ASTNode:
+def _parse_binary_expression_recursive(previous_token_precedence: int) -> ASTNode:
     """Perform Pratt parsing on a binary expression
 
     Args:
@@ -195,7 +196,7 @@ def parse_binary_expression(previous_token_precedence: int) -> ASTNode:
         GLOBAL_SCANNER.scan()
 
         # Recursively build the right AST subtree
-        right = parse_binary_expression(OPERATOR_PRECEDENCE[node_type])
+        right = _parse_binary_expression_recursive(OPERATOR_PRECEDENCE[node_type])
 
         # Join right subtree with current left subtree
         left = ASTNode(Token(node_type), left, None, right)
@@ -208,3 +209,7 @@ def parse_binary_expression(previous_token_precedence: int) -> ASTNode:
             raise EccoEOFMissingSemicolonError()
 
     return left
+
+
+def parse_binary_expression():
+    return optimize_AST(_parse_binary_expression_recursive(0))

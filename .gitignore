@@ -6,4 +6,4 @@ dist/
 .mypy_cache/
 *.out
 *.ll
-
+examples/arith_test

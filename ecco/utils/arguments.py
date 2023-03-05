@@ -43,6 +43,15 @@ def get_args() -> Namespace:
         version=f"{parser.prog} {distribution}",
     )
 
+    parser.add_argument(
+        "--opt",
+        "-O",
+        type=int,
+        choices=[0, 1, 2],
+        help="Level of optimization to apply [0 = No optimization, 1 = One round of optimization, 2 = Maximum optimization]",
+        default=1,
+    )
+
     args = parser.parse_args()
 
     if args.output == "":

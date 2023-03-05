@@ -1,6 +1,6 @@
-from ..scanning import Token
+from ..scanning import Token, TokenType
 from copy import deepcopy
-from typing import Optional
+from typing import Optional, List
 from ..generation.types import Number, NumberType
 
 
@@ -40,17 +40,36 @@ class ASTNode:
         self.tree_type: Number = tree_type
 
     @property
-    def type(self):
+    def type(self) -> TokenType:
         return self.token.type
+
+    @property
+    def children(self) -> List["Optional[ASTNode]"]:
+        return [self.left, self.middle, self.right]
+
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, ASTNode):
+            return False
+
+        if self.children:
+            return (
+                self.left == o.left
+                and self.middle == o.middle
+                and self.right == o.right
+            )
+
+        return self.type == o.type and self.token.value == o.token.value
 
     def __str__(self):
         out = "ASTNode:\n"
-        out += f"\tData: {self.token.type} {str(self.token.value) if self.token.value else ''}\n"
+        out += f"\tData: {self.token.type} {str(self.token.value)}\n"
         if self.left:
-            out += f"\tLeft: {self.left.token.type} {str(self.left.token.value) if self.left.token.value else ''}\n"
+            out += f"\tLeft: {self.left.token.type} {str(self.left.token.value)}\n"
         if self.middle:
-            out += f"\tMiddle: {self.middle.token.type} {str(self.middle.token.value) if self.middle.token.value else ''}\n"
+            out += (
+                f"\tMiddle: {self.middle.token.type} {str(self.middle.token.value)}\n"
+            )
         if self.right:
-            out += f"\tRight: {self.right.token.type} {str(self.right.token.value) if self.right.token.value else ''}\n"
+            out += f"\tRight: {self.right.token.type} {str(self.right.token.value)}\n"
 
         return out

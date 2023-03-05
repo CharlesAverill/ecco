@@ -62,6 +62,13 @@ class TokenType(Enum):
     def is_type(self):
         return int(TokenType.VOID) <= int(self) <= int(TokenType.CHAR)
 
+    def is_literal(self):
+        return (
+            int(TokenType.INTEGER_LITERAL)
+            <= int(self)
+            <= int(TokenType.INTEGER_LITERAL)
+        )
+
     @staticmethod
     def from_string(c: str, next_char: str) -> "TokenType":
         # This is a temporary tactic we'll use to check length-2 tokens that

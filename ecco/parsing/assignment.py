@@ -41,7 +41,7 @@ def assignment_statement() -> ASTNode:
 
     match_token(TokenType.ASSIGN)
 
-    left = parse_binary_expression(0)
+    left = parse_binary_expression()
 
     tree = ASTNode(Token(TokenType.ASSIGN), left, None, right)
 

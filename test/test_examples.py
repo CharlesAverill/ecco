@@ -1,4 +1,5 @@
 from .tester import _tester
+from .generate_arithmetic_test import generate_arithmetic_test
 
 
 def test1():
@@ -81,7 +82,7 @@ def test8():
     _tester("test8", "7")
 
 
-def factorial():
+def testfactorial():
     _tester("factorial", "120")
 
 
@@ -94,3 +95,23 @@ def test9():
 12
 5""",
     )
+
+
+def testopt():
+    _tester("opt_test", """3
+3
+3
+-3
+0
+0
+0
+10
+120
+5
+17
+340
+8
+50""")
+
+def test_arithmetic():
+    _tester("arith_test", generate_arithmetic_test(500))

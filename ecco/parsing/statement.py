@@ -60,7 +60,7 @@ def print_statement() -> ASTNode:
 
     match_token(TokenType.PRINT)
 
-    tree = parse_binary_expression(0)
+    tree = parse_binary_expression()
 
     tree = ASTNode(Token(TokenType.PRINT), tree, None, None)
 
@@ -76,7 +76,7 @@ def if_statement() -> ASTNode:
     match_token(TokenType.LEFT_PARENTHESIS)
 
     # Get the condition tree
-    condition_tree: ASTNode = parse_binary_expression(0)
+    condition_tree: ASTNode = parse_binary_expression()
     if not condition_tree.token.is_comparison_operator():
         raise EccoFatalException(
             f"Branch statements currently require a conditional operand, not {condition_tree.token}"
@@ -109,7 +109,7 @@ def while_statement() -> ASTNode:
     match_token(TokenType.LEFT_PARENTHESIS)
 
     # Get the condition tree
-    condition_tree: ASTNode = parse_binary_expression(0)
+    condition_tree: ASTNode = parse_binary_expression()
     if not condition_tree.token.is_comparison_operator():
         raise EccoFatalException(
             f"Branch statements currently require a conditional operand, not {condition_tree.token}"
@@ -133,7 +133,7 @@ def for_statement() -> ASTNode:
     match_token(TokenType.SEMICOLON)
 
     # Get the condition tree
-    condition_tree: ASTNode = parse_binary_expression(0)
+    condition_tree: ASTNode = parse_binary_expression()
     if not condition_tree.token.is_comparison_operator():
         raise EccoFatalException(
             f"Branch statements currently require a conditional operand, not {condition_tree.token}"
@@ -171,7 +171,7 @@ def return_statement() -> ASTNode:
 
     return ASTNode(
         Token(TokenType.RETURN, GLOBAL_SCANNER.current_function_name),
-        parse_binary_expression(0),
+        parse_binary_expression(),
     )
 
 
