@@ -79,6 +79,7 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
     """
     global LLVM_FREE_REGISTERS
     from .llvm import get_next_local_virtual_register
+    from ..ecco import ARGS
 
     left_entry: List[LLVMStackEntry] = []
     middle_entry: List[LLVMStackEntry] = []
@@ -94,6 +95,9 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
 
         return left_entry + middle_entry + right_entry
     elif root.type in [TokenType.INTEGER_LITERAL, TokenType.IDENTIFIER]:
+        if ARGS.opt != 0 and root.type == TokenType.INTEGER_LITERAL:
+            return []
+
         out_entry = LLVMStackEntry(
             LLVMValue(
                 LLVMValueType.VIRTUAL_REGISTER,
@@ -200,6 +204,8 @@ def ast_to_llvm(
         llvm_dereference,
     )
 
+    from ..ecco import ARGS
+
     left_vr: LLVMValue
     right_vr: LLVMValue
 
@@ -244,6 +250,10 @@ def ast_to_llvm(
     # Terminal Node
     elif root.token.is_terminal():
         if root.type == TokenType.INTEGER_LITERAL:
+            if ARGS.opt != 0:
+                return LLVMValue(
+                    LLVMValueType.CONSTANT, int(root.token.value), root.tree_type.ntype
+                )
             return llvm_store_constant(int(root.token.value))
     # Rvalue Identifier
     elif root.type == TokenType.IDENTIFIER:

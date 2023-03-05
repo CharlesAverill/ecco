@@ -15,6 +15,10 @@ class NumberType(Enum):
     def byte_width(self) -> int:
         return max(1, int(self.value[1:]) // 4)
 
+    @property
+    def max_val(self) -> int:
+        return 2**self.byte_width
+
     @staticmethod
     def from_int(i) -> "NumberType":
         for t in NumberType:

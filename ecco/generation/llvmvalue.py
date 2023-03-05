@@ -12,6 +12,7 @@ class LLVMValueType(Enum):
 
     VIRTUAL_REGISTER = "Virtual Register"
     LABEL = "Label"
+    CONSTANT = "Constant"
 
     def __str__(self) -> str:
         return self.value
@@ -42,7 +43,11 @@ class LLVMValue:
         self.number_type: NumberType = nt
         self.pointer_depth: int = pointer_depth
 
-        if self.value_type in [LLVMValueType.VIRTUAL_REGISTER, LLVMValueType.LABEL]:
+        if self.value_type in [
+            LLVMValueType.VIRTUAL_REGISTER,
+            LLVMValueType.LABEL,
+            LLVMValueType.CONSTANT,
+        ]:
             if type(value) != int:
                 raise EccoInternalTypeError(
                     str(int),
@@ -50,6 +55,10 @@ class LLVMValue:
                     "generation/llvmvalue.py:LLVMValue.__init__",
                 )
             self.int_value = value
+
+    @property
+    def is_register(self) -> bool:
+        return self.value_type == LLVMValueType.VIRTUAL_REGISTER
 
     @property
     def references(self) -> str:

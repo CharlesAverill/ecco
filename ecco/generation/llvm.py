@@ -145,6 +145,10 @@ def llvm_int_resize(register: LLVMValue, new_width: NumberType) -> LLVMValue:
     Returns:
         LLVMValue: Register containing resized data
     """
+    if register.value_type == LLVMValueType.CONSTANT:
+        register.int_value = min(register.int_value, register.number_type.max_val)
+        return register
+
     register = llvm_ensure_registers_loaded([register])[0]
 
     op = "zext" if int(new_width) > int(register.number_type.byte_width) else "trunc"
@@ -179,7 +183,7 @@ def llvm_add(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = add nsw {left_vr.number_type} %{left_vr.int_value}, %{right_vr.int_value}",
+            f"%{out_vr} = add nsw {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.int_value}, {'%' if right_vr.is_register else ''}{right_vr.int_value}",
             NEWLINE,
         ]
     )
@@ -204,7 +208,7 @@ def llvm_sub(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = sub nsw {left_vr.number_type} %{left_vr.int_value}, %{right_vr.int_value}",
+            f"%{out_vr} = sub nsw {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.int_value}, {'%' if right_vr.is_register else ''}{right_vr.int_value}",
             NEWLINE,
         ]
     )
@@ -229,7 +233,7 @@ def llvm_mul(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = mul nsw {left_vr.number_type} %{left_vr.int_value}, %{right_vr.int_value}",
+            f"%{out_vr} = mul nsw {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.int_value}, {'%' if right_vr.is_register else ''}{right_vr.int_value}",
             NEWLINE,
         ]
     )
@@ -254,7 +258,7 @@ def llvm_div(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = udiv {left_vr.number_type} %{left_vr.int_value}, %{right_vr.int_value}",
+            f"%{out_vr} = udiv {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.int_value}, {'%' if right_vr.is_register else ''}{right_vr.int_value}",
             NEWLINE,
         ]
     )
@@ -347,7 +351,7 @@ def llvm_comparison(token: Token, left_vr: LLVMValue, right_vr: LLVMValue) -> LL
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr.int_value} = icmp {operator} {left_vr.number_type} %{left_vr.int_value}, %{right_vr.int_value}",
+            f"%{out_vr.int_value} = icmp {operator} {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.int_value}, {'%' if right_vr.is_register else ''}{right_vr.int_value}",
             NEWLINE,
         ]
     )
@@ -464,29 +468,38 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
     if type(ste.identifier_type.contents) != Number:
         raise EccoFatalException("", "Tried to store data into non-number")
 
-    rvalue = llvm_ensure_registers_loaded(
-        [rvalue], ste.identifier_type.contents.pointer_depth - 1
-    )[0]
+    if rvalue.value_type == LLVMValueType.VIRTUAL_REGISTER:
+        rvalue = llvm_ensure_registers_loaded(
+            [rvalue], ste.identifier_type.contents.pointer_depth - 1
+        )[0]
 
-    if rvalue.pointer_depth != ste.identifier_type.contents.pointer_depth - 1:
-        raise EccoFatalException(
-            "", "Pointer mismatch when trying to save to global variable"
-        )
+        if rvalue.pointer_depth != ste.identifier_type.contents.pointer_depth - 1:
+            raise EccoFatalException(
+                "", "Pointer mismatch when trying to save to global variable"
+            )
 
-    if type(ste.identifier_type.contents) == Number:
+        if type(ste.identifier_type.contents) == Number:
+            LLVM_OUT_FILE.writelines(
+                [
+                    TAB,
+                    f"store {rvalue.number_type}{rvalue.references} %{rvalue.int_value}, "
+                    f"{ste.identifier_type.contents.ntype}{ste.identifier_type.contents.references} @{name}",
+                    NEWLINE,
+                ]
+            )
+        else:
+            raise EccoInternalTypeError(
+                str(Number),
+                str(type(ste.identifier_type.contents)),
+                "llvm.py:llvm_store_global",
+            )
+    elif rvalue.value_type == LLVMValueType.CONSTANT:
         LLVM_OUT_FILE.writelines(
             [
                 TAB,
-                f"store {rvalue.number_type}{rvalue.references} %{rvalue.int_value}, "
-                f"{ste.identifier_type.contents.ntype}{ste.identifier_type.contents.references} @{name}",
+                f"store {ste.identifier_type.contents.ntype} {rvalue.int_value}, {ste.identifier_type.contents.ntype}{ste.identifier_type.contents.references} @{name}",
                 NEWLINE,
             ]
-        )
-    else:
-        raise EccoInternalTypeError(
-            str(Number),
-            str(type(ste.identifier_type.contents)),
-            "llvm.py:llvm_store_global",
         )
 
 
@@ -523,7 +536,7 @@ def llvm_print_int(reg: LLVMValue) -> None:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @print_int_fstring , i32 0, i32 0), {reg.number_type}{reg.references} %{reg.int_value})",
+            f"call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @print_int_fstring , i32 0, i32 0), {reg.number_type}{reg.references} {'%' if reg.is_register else ''}{reg.int_value})",
             NEWLINE,
         ]
     )
@@ -726,7 +739,11 @@ def llvm_return(return_value: LLVMValue, function_name: str) -> None:
     else:
         return_value = llvm_ensure_registers_loaded([return_value])[0]
         LLVM_OUT_FILE.writelines(
-            [TAB, f"ret {return_value.number_type} %{return_value.int_value}", NEWLINE]
+            [
+                TAB,
+                f"ret {return_value.number_type} {'%' if return_value.is_register else ''}{return_value.int_value}",
+                NEWLINE,
+            ]
         )
 
     get_next_local_virtual_register()
