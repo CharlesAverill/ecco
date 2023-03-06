@@ -20,7 +20,7 @@ NEWLINE = "\n"
 TAB = "\t"
 
 LLVM_GLOBALS_PLACEHOLDER = (
-    "<ECCO GLOBALS PLACEHOLDER - If you see this, an issue with ECCO occurrred!>"
+    "<ECCO GLOBALS PLACEHOLDER - If you see this, an issue with ECCO occurred!>"
 )
 
 
