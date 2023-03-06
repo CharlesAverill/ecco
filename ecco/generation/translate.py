@@ -95,7 +95,7 @@ def determine_binary_expression_stack_allocation(root: ASTNode) -> List[LLVMStac
 
         return left_entry + middle_entry + right_entry
     elif root.type in [TokenType.INTEGER_LITERAL, TokenType.IDENTIFIER]:
-        if ARGS.opt != 0 and root.type == TokenType.INTEGER_LITERAL:
+        if ARGS.opt != 0:
             return []
 
         out_entry = LLVMStackEntry(
