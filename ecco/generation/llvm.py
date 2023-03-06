@@ -289,6 +289,14 @@ def llvm_binary_arithmetic(
     """
     out_vr: LLVMValue
 
+    if left_vr.value_type == LLVMValueType.CONSTANT and right_vr.value_type == LLVMValueType.CONSTANT:
+        op = str(token.type)
+        if op == "/":
+            op = "//"
+        return LLVMValue(LLVMValueType.CONSTANT,
+            value=eval(f"{left_vr.int_value} {op} {right_vr.int_value}")
+        )
+
     if int(left_vr.number_type) < int(right_vr.number_type):
         left_vr = llvm_int_resize(left_vr, right_vr.number_type)
     elif int(left_vr.number_type) > int(right_vr.number_type):

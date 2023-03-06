@@ -211,5 +211,12 @@ def _parse_binary_expression_recursive(previous_token_precedence: int) -> ASTNod
     return left
 
 
-def parse_binary_expression():
-    return optimize_AST(_parse_binary_expression_recursive(0))
+def parse_binary_expression() -> ASTNode:
+    """Wrapper function for parsing binary expressions
+
+    Returns:
+        ASTNode: Expression AST
+    """
+    root = optimize_AST(_parse_binary_expression_recursive(0))
+    
+    return root

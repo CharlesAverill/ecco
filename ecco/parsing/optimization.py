@@ -160,7 +160,7 @@ def optimize_AST(root: ASTNode) -> ASTNode:
     """
     from ..ecco import ARGS
 
-    if ARGS.opt == 0:
+    if ARGS.opt == 0 or not root:
         return root
 
     # before_opt will be used to check if an optimization did anything
