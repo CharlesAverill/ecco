@@ -113,5 +113,10 @@ def testopt():
 8
 50""")
 
+
 def test_arithmetic():
     _tester("arith_test", generate_arithmetic_test(500))
+
+
+def test_empty():
+    _tester("empty", "")
