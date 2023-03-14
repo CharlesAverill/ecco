@@ -160,8 +160,11 @@ def parse_statements() -> ASTNode:
                 f'Unexpected token "{str(GLOBAL_SCANNER.current_token.type)}"'
             )
 
-        if left and return_left:
-            return left
+        if return_left:
+            if left:
+                return left
+            else:
+                return root
 
         if match_semicolon:
             match_token(TokenType.SEMICOLON)
