@@ -26,7 +26,7 @@ class TokenType(Enum):
     GEQ = ">="
 
     # Pointers
-    REFERENCE = "%reference"
+    DEREFERENCE = "%dereference"
     AMPERSAND = "&"
 
     # Literals
@@ -51,7 +51,7 @@ class TokenType(Enum):
     # Miscellaneous
     SEMICOLON = ";"
     IDENTIFIER = "%identifier"
-    LEFTVALUE_IDENTIFIER = "%leftvalue identifier"
+    # LEFTVALUE_IDENTIFIER = "%leftvalue identifier"
     FUNCTION = "%function"
     FUNCTION_CALL = "%function call"
     LEFT_BRACE = "{"
@@ -144,7 +144,6 @@ class Token:
             in [
                 TokenType.INTEGER_LITERAL,
                 TokenType.IDENTIFIER,
-                TokenType.LEFTVALUE_IDENTIFIER,
             ]
             else ""
         )

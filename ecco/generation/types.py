@@ -1,6 +1,6 @@
 from enum import Enum
 from ..scanning.ecco_token import TokenType
-from typing import Union
+from typing import Union, Optional
 from ..utils import EccoInternalTypeError
 
 
@@ -11,12 +11,18 @@ class NumberType(Enum):
     INT = "i32"
     LONG = "i64"
 
+    VOID = "void"
+
     @property
     def byte_width(self) -> int:
+        if self == NumberType.VOID:
+            return 0
         return max(1, int(self.value[1:]) // 4)
 
     @property
     def max_val(self) -> int:
+        if self == NumberType.VOID:
+            return 0
         return 2**self.byte_width
 
     @staticmethod
@@ -31,19 +37,24 @@ class NumberType(Enum):
         )
 
     @staticmethod
-    def from_tokentype(t: TokenType):
+    def from_tokentype(t: TokenType) -> "NumberType":
         if t == TokenType.INT:
             return NumberType.INT
         elif t == TokenType.CHAR:
             return NumberType.CHAR
-        return None
+        elif t == TokenType.VOID:
+            return NumberType.VOID
 
-    def to_tokentype(self):
-        if int(self) == int(NumberType.INT):
+        return NumberType.VOID
+
+    def to_tokentype(self) -> TokenType:
+        if self == NumberType.INT:
             return TokenType.INT
-        elif int(self) == int(NumberType.CHAR):
+        elif self == NumberType.CHAR:
             return TokenType.CHAR
-        return None
+        elif self == NumberType.VOID:
+            return TokenType.VOID
+        return TokenType.UNKNOWN_TOKEN
 
     def __str__(self) -> str:
         return self.value
@@ -64,8 +75,8 @@ class Number:
 
 
 class Function:
-    def __init__(self, rtype: TokenType):
-        self.return_type: TokenType = rtype
+    def __init__(self, rtype: Number):
+        self.return_type: Number = rtype
 
 
 class Type:
@@ -82,7 +93,8 @@ class Type:
         if type(self.contents) == Number:
             return str(self.contents.ntype)
         elif type(self.contents) == Function:
-            if self.contents.return_type == TokenType.VOID:
+            if self.contents.return_type:
+                return str(self.contents.return_type.ntype)
+            else:
                 return "void"
-            return str(NumberType.from_tokentype(self.contents.return_type))
         return "brokentype"

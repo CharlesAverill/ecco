@@ -166,13 +166,13 @@ def while_ast_to_llvm(root: ASTNode) -> LLVMValue:
 
 
 def ast_to_llvm(
-    root: Optional[ASTNode], rvalue: LLVMValue, parent_operation: TokenType
+    root: Optional[ASTNode], label: LLVMValue, parent_operation: TokenType
 ) -> LLVMValue:
     """Function to traverse an AST and generate LLVM code for it
 
     Args:
         root (ASTNode): Root ASTNode of program to generate
-        rvalue (LLVMValue): Value passed from left-branch traversals to the
+        label (LLVMValue): Label value passed from left-branch traversals to the
                             right branch
         parent_operation (TokenType): TokenType of parent of root
 
@@ -202,6 +202,7 @@ def ast_to_llvm(
         llvm_call_function,
         llvm_get_address,
         llvm_dereference,
+        llvm_store_dereference,
     )
 
     from ..ecco import ARGS
@@ -234,7 +235,7 @@ def ast_to_llvm(
     if root.left:
         left_vr = ast_to_llvm(root.left, LLVMValue(LLVMValueType.NONE), root.type)
     if root.right:
-        right_vr = ast_to_llvm(root.right, left_vr, root.type)
+        right_vr = ast_to_llvm(root.right, LLVMValue(LLVMValueType.NONE), root.type)
 
     # Binary arithmetic
     if root.token.is_binary_arithmetic():
@@ -244,7 +245,7 @@ def ast_to_llvm(
     elif root.token.is_comparison_operator():
         left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr])
         if parent_operation in [TokenType.IF, TokenType.WHILE]:
-            return llvm_compare_jump(root.token, left_vr, right_vr, rvalue)
+            return llvm_compare_jump(root.token, left_vr, right_vr, label)
         else:
             return llvm_comparison(root.token, left_vr, right_vr)
     # Terminal Node
@@ -257,13 +258,31 @@ def ast_to_llvm(
             return llvm_store_constant(int(root.token.value))
     # Rvalue Identifier
     elif root.type == TokenType.IDENTIFIER:
-        return llvm_load_global(str(root.token.value))
+        if root.is_rvalue or parent_operation == TokenType.DEREFERENCE:
+            return llvm_load_global(str(root.token.value))
+        else:
+            return LLVMValue(LLVMValueType.NONE)
     # Lvalue Identifier
-    elif root.type == TokenType.LEFTVALUE_IDENTIFIER:
-        llvm_store_global(str(root.token.value), rvalue)
-        return rvalue
+    # elif root.type == TokenType.LEFTVALUE_IDENTIFIER:
+    #     llvm_store_global(str(root.token.value), rvalue)
+    #     return rvalue
     elif root.type == TokenType.ASSIGN:
-        return rvalue
+        if root.right:
+            if root.right.type == TokenType.IDENTIFIER:
+                llvm_store_global(str(root.right.token.value), left_vr)
+                return left_vr
+            elif root.right.type == TokenType.DEREFERENCE:
+                llvm_store_dereference(right_vr, left_vr)
+                return left_vr
+
+            raise EccoInternalTypeError(
+                "Identifier or Dereference token",
+                str(root.right.type),
+                "translate.py:ast_to_llvm",
+            )
+        raise EccoInternalTypeError(
+            "two children", "nothing", "translate.py:ast_to_llvm"
+        )
     # Return statement
     elif root.type == TokenType.RETURN:
         if type(root.token.value) != str:
@@ -277,8 +296,11 @@ def ast_to_llvm(
         return llvm_call_function(left_vr, str(root.token.value))
     elif root.type == TokenType.AMPERSAND:
         return llvm_get_address(str(root.token.value))
-    elif root.type == TokenType.REFERENCE:
-        return llvm_dereference(left_vr)
+    elif root.type == TokenType.DEREFERENCE:
+        if root.is_rvalue:
+            return llvm_dereference(left_vr)
+        else:
+            return left_vr
     # Print statement
     elif root.type == TokenType.PRINT:
         llvm_print_int(left_vr)
@@ -291,7 +313,7 @@ def ast_to_llvm(
             "", f'Unknown token encountered in ast_to_llvm: "{str(root.token)}"'
         )
 
-    return LLVMValue(LLVMValueType.NONE, None)
+    return LLVMValue(LLVMValueType.NONE)
 
 
 def generate_llvm() -> None:

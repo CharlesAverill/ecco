@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 
 from ..scanning import Token, TokenType
 from ..utils import (
@@ -20,13 +20,16 @@ OPERATOR_PRECEDENCE: Dict[TokenType, int] = {
     TokenType.MINUS: 12,
     TokenType.STAR: 13,
     TokenType.SLASH: 13,
-    TokenType.EQ: 10,
-    TokenType.NEQ: 10,
-    TokenType.LT: 11,
-    TokenType.LEQ: 11,
-    TokenType.GT: 11,
-    TokenType.GEQ: 11,
+    TokenType.EQ: 9,
+    TokenType.NEQ: 9,
+    TokenType.LT: 10,
+    TokenType.LEQ: 10,
+    TokenType.GT: 10,
+    TokenType.GEQ: 10,
+    TokenType.ASSIGN: 1,
 }
+
+RIGHT_ASSOCIATIVITY_OPERATORS: List[TokenType] = [TokenType.ASSIGN]
 
 
 def parse_terminal_node() -> ASTNode:
@@ -91,13 +94,16 @@ def prefix_operator_passthrough() -> ASTNode:
         GLOBAL_SCANNER.scan()
         out = prefix_operator_passthrough()
 
-        if out.type not in [TokenType.IDENTIFIER, TokenType.REFERENCE]:
+        if out.type not in [TokenType.IDENTIFIER, TokenType.DEREFERENCE]:
             raise EccoSyntaxError(
                 "Dereference operators must be succeeded by dereference operators or variable names"
             )
 
         out.tree_type.pointer_depth -= 1
-        out = ASTNode(Token(TokenType.REFERENCE), out)
+        out = ASTNode(Token(TokenType.DEREFERENCE), out)
+
+        if out.left:
+            out.token.value = out.left.token.value
     else:
         out = parse_terminal_node()
 
@@ -185,18 +191,32 @@ def _parse_binary_expression_recursive(previous_token_precedence: int) -> ASTNod
     # Reached the end of a statement
     node_type = GLOBAL_SCANNER.current_token.type
     if node_type in [TokenType.SEMICOLON, TokenType.RIGHT_PARENTHESIS]:
+        left.is_rvalue = True
         return left
     elif node_type == TokenType.EOF:
         raise EccoEOFMissingSemicolonError()
 
     # As long as the precedence of the current token is less than the precedence
     # of the previous token
-    while error_check_precedence(node_type) > previous_token_precedence:
+    while (error_check_precedence(node_type) > previous_token_precedence) or (
+        error_check_precedence(node_type) == previous_token_precedence
+        and node_type in RIGHT_ASSOCIATIVITY_OPERATORS
+    ):
         # Scan the next Token
         GLOBAL_SCANNER.scan()
 
         # Recursively build the right AST subtree
         right = _parse_binary_expression_recursive(OPERATOR_PRECEDENCE[node_type])
+
+        if node_type == TokenType.ASSIGN:
+            # When assigning, we want to swap the left and right children
+            # so that right-associativity is maintained
+            # We also want assignment statements to be rvalues, so that we
+            # can perform array accesses and multiple assignments
+            right.is_rvalue = True
+            left, right = right, left
+        else:
+            left.is_rvalue = right.is_rvalue = True
 
         # Join right subtree with current left subtree
         left = ASTNode(Token(node_type), left, None, right)
@@ -208,6 +228,7 @@ def _parse_binary_expression_recursive(previous_token_precedence: int) -> ASTNod
         elif node_type == TokenType.EOF:
             raise EccoEOFMissingSemicolonError()
 
+    left.is_rvalue = True
     return left
 
 
@@ -218,5 +239,5 @@ def parse_binary_expression() -> ASTNode:
         ASTNode: Expression AST
     """
     root = optimize_AST(_parse_binary_expression_recursive(0))
-    
+
     return root

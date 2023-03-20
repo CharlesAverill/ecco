@@ -28,6 +28,7 @@ class LLVMValue:
         value: Union[int, None] = None,
         nt: NumberType = NumberType.INT,
         pointer_depth: int = 0,
+        just_loaded: str = "",
     ):
         """Stores data about various kinds of LLVM Values
 
@@ -42,6 +43,7 @@ class LLVMValue:
         self.int_value: int = 0
         self.number_type: NumberType = nt
         self.pointer_depth: int = pointer_depth
+        self.just_loaded: str = just_loaded
 
         if self.value_type in [
             LLVMValueType.VIRTUAL_REGISTER,
@@ -69,6 +71,6 @@ class LLVMValue:
         if self.value_type == LLVMValueType.VIRTUAL_REGISTER:
             append = f": %{self.int_value}"
         return (
-            f"LLVMValue ({self.value_type} {self.number_type}{self.pointer_depth - 1})"
+            f"LLVMValue ({self.value_type} {self.number_type}{'*' * self.pointer_depth})"
             + append
         )

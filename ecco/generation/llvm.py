@@ -289,12 +289,16 @@ def llvm_binary_arithmetic(
     """
     out_vr: LLVMValue
 
-    if left_vr.value_type == LLVMValueType.CONSTANT and right_vr.value_type == LLVMValueType.CONSTANT:
+    if (
+        left_vr.value_type == LLVMValueType.CONSTANT
+        and right_vr.value_type == LLVMValueType.CONSTANT
+    ):
         op = str(token.type)
         if op == "/":
             op = "//"
-        return LLVMValue(LLVMValueType.CONSTANT,
-            value=eval(f"{left_vr.int_value} {op} {right_vr.int_value}")
+        return LLVMValue(
+            LLVMValueType.CONSTANT,
+            value=eval(f"{left_vr.int_value} {op} {right_vr.int_value}"),
         )
 
     if int(left_vr.number_type) < int(right_vr.number_type):
@@ -450,6 +454,7 @@ def llvm_load_global(name: str) -> LLVMValue:
         out_vr,
         glob_ntype,
         ste.identifier_type.contents.pointer_depth - 1,
+        name,
     )
 
 
@@ -506,6 +511,30 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
             [
                 TAB,
                 f"store {ste.identifier_type.contents.ntype} {rvalue.int_value}, {ste.identifier_type.contents.ntype}{ste.identifier_type.contents.references} @{name}",
+                NEWLINE,
+            ]
+        )
+
+
+def llvm_store_dereference(destination: LLVMValue, value: LLVMValue):
+    if not value.is_register:
+        if destination.pointer_depth > value.pointer_depth + 1:
+            destination = llvm_ensure_registers_loaded(
+                [destination], value.pointer_depth + 1
+            )[0]
+
+        LLVM_OUT_FILE.writelines(
+            [
+                TAB,
+                f"store {value.number_type}{value.references} {'%' if value.is_register else ''}{value.int_value}, {destination.number_type}{destination.references} %{destination.int_value}",
+                NEWLINE,
+            ]
+        )
+    else:
+        LLVM_OUT_FILE.writelines(
+            [
+                TAB,
+                f"store {value.number_type}{value.references} {'%' if value.is_register else ''}{value.int_value}, {destination.number_type}{destination.references}* @{destination.just_loaded}",
                 NEWLINE,
             ]
         )
@@ -707,12 +736,12 @@ def llvm_function_postamble(function_name: str) -> None:
 
     LLVM_OUT_FILE.writelines([TAB, "ret "])
 
-    if entry.identifier_type.contents.return_type == TokenType.VOID:
+    if entry.identifier_type.contents.return_type.ntype == NumberType.VOID:
         LLVM_OUT_FILE.write("void" + NEWLINE)
     else:
         LLVM_OUT_FILE.writelines(
             [
-                f"{NumberType.from_tokentype(entry.identifier_type.contents.return_type)} {'' if entry.identifier_type.contents.return_type == TokenType.VOID else '0'}",
+                f"{entry.identifier_type.contents.return_type.ntype} 0",
                 NEWLINE,
             ]
         )
@@ -742,17 +771,15 @@ def llvm_return(return_value: LLVMValue, function_name: str) -> None:
             f'Tried to generate return statement for non-function identifier "{function_name}"',
         )
 
-    if entry.identifier_type.contents.return_type == TokenType.VOID:
-        LLVM_OUT_FILE.writelines([TAB, "ret void", NEWLINE])
-    else:
-        return_value = llvm_ensure_registers_loaded([return_value])[0]
-        LLVM_OUT_FILE.writelines(
-            [
-                TAB,
-                f"ret {return_value.number_type} {'%' if return_value.is_register else ''}{return_value.int_value}",
-                NEWLINE,
-            ]
-        )
+    return_value = llvm_ensure_registers_loaded([return_value])[0]
+    LLVM_OUT_FILE.writelines(
+        [
+            TAB,
+            f"ret {return_value.number_type} ",
+            f"{'%' if return_value.is_register else ''}{return_value.int_value}" if return_value.number_type != NumberType.VOID else "",
+            NEWLINE,
+        ]
+    )
 
     get_next_local_virtual_register()
 
@@ -791,7 +818,7 @@ def llvm_call_function(argument: LLVMValue, function_name: str) -> LLVMValue:
         out = LLVMValue(
             LLVMValueType.VIRTUAL_REGISTER,
             get_next_local_virtual_register(),
-            NumberType.from_tokentype(entry.identifier_type.contents.return_type),
+            entry.identifier_type.contents.return_type.ntype,
         )
         LLVM_OUT_FILE.writelines([f"%{out.int_value} = "])
         call_type = str(out.number_type)
@@ -862,6 +889,7 @@ def llvm_dereference(value: LLVMValue) -> LLVMValue:
     Returns:
         LLVMValue: Register containing dereferenced contents
     """
+    print("Dereference!", value)
     out = LLVMValue(
         LLVMValueType.VIRTUAL_REGISTER,
         get_next_local_virtual_register(),

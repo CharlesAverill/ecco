@@ -12,12 +12,10 @@ def function_declaration_statement() -> ASTNode:
     Returns:
         ASTNode: AST containing entire program within function
     """
-    from .statement import match_token, parse_statements
+    from .statement import match_token, parse_statements, match_type
     from ..ecco import GLOBAL_SYMBOL_TABLE, GLOBAL_SCANNER
 
-    return_type: TokenType = match_token(
-        [TokenType.VOID, TokenType.INT, TokenType.CHAR]
-    )[1]
+    return_type: Number = match_type()
     identifier: Union[str, int] = match_token(TokenType.IDENTIFIER)[0]
     if type(identifier) != str:
         raise EccoInternalTypeError(

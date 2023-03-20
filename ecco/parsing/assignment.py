@@ -37,7 +37,7 @@ def assignment_statement() -> ASTNode:
     # elif type(symbol.identifier_type.contents) == Function:
     #     return function_call_expression(symbol.identifier_name)
 
-    right = ASTNode(Token(TokenType.LEFTVALUE_IDENTIFIER, ident), None, None, None)
+    right = ASTNode(Token(TokenType.IDENTIFIER, ident), None, None, None)
 
     match_token(TokenType.ASSIGN)
 

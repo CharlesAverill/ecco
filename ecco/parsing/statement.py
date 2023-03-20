@@ -5,7 +5,7 @@ from typing import Optional, Union, List, Tuple
 from .declaration import declaration_statement
 from .assignment import assignment_statement
 from ..generation.symboltable import SymbolTableEntry
-from ..generation.types import Number, NumberType, Function
+from ..generation.types import Number, NumberType
 
 
 def match_token(
@@ -45,7 +45,7 @@ def match_type() -> Number:
     """
     from ..ecco import GLOBAL_SCANNER
 
-    ttype = match_token([TokenType.INT, TokenType.CHAR])[1]
+    ttype = match_token([TokenType.VOID, TokenType.INT, TokenType.CHAR])[1]
 
     pointer_depth = 0
     while GLOBAL_SCANNER.current_token.type == TokenType.STAR:
@@ -176,7 +176,8 @@ def return_statement() -> ASTNode:
 
 
 def parse_statements() -> ASTNode:
-    from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
+    from ..ecco import GLOBAL_SCANNER
+    from .expression import parse_binary_expression
 
     root: ASTNode = ASTNode(Token(TokenType.UNKNOWN_TOKEN))
     left: Optional[ASTNode] = None
@@ -192,16 +193,6 @@ def parse_statements() -> ASTNode:
         elif GLOBAL_SCANNER.current_token.type.is_type():
             declaration_statement()
             root = ASTNode(Token(TokenType.UNKNOWN_TOKEN))
-        elif GLOBAL_SCANNER.current_token.type == TokenType.IDENTIFIER:
-            gse = GLOBAL_SYMBOL_TABLE[str(GLOBAL_SCANNER.current_token.value)]
-            if gse and type(gse.identifier_type.contents) == Number:
-                root = assignment_statement()
-            elif gse and type(gse.identifier_type.contents) == Function:
-                from .expression import function_call_expression
-
-                ident = str(GLOBAL_SCANNER.current_token.value)
-                match_token(TokenType.IDENTIFIER)
-                root = function_call_expression(ident)
         elif GLOBAL_SCANNER.current_token.type == TokenType.IF:
             root = if_statement()
             match_semicolon = False
@@ -218,9 +209,7 @@ def parse_statements() -> ASTNode:
         elif GLOBAL_SCANNER.current_token.type == TokenType.RETURN:
             root = return_statement()
         else:
-            raise EccoSyntaxError(
-                f'Unexpected token "{str(GLOBAL_SCANNER.current_token.type)}"'
-            )
+            root = parse_binary_expression()
 
         if return_left:
             if left:

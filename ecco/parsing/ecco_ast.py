@@ -12,6 +12,7 @@ class ASTNode:
         middle: Optional["ASTNode"] = None,
         right: Optional["ASTNode"] = None,
         tree_type: Number = Number(NumberType.INT, 0),
+        is_rvalue: bool = False,
     ):
         """A class for storing Abstract Syntax Tree data
 
@@ -20,6 +21,8 @@ class ASTNode:
             left (Optional["ASTNode"], optional): Left child. Defaults to None.
             left (Optional["ASTNode"], optional): Middle child. Defaults to None.
             right (Optional["ASTNode"], optional): Right child. Defaults to None.
+            tree_type (Number): Number containing tree number data
+            is_rvalue (bool): Whether or not this tree stores rvalue data
         """
         self.token: Token = deepcopy(from_token)
 
@@ -35,9 +38,23 @@ class ASTNode:
         if self.right:
             self.right.parent = self
 
+        self._is_rvalue: Optional[bool] = None
+        # self.is_rvalue = is_rvalue
+
         self.parent: ASTNode
 
         self.tree_type: Number = tree_type
+
+    @property
+    def is_rvalue(self) -> bool:
+        return self._is_rvalue if type(self._is_rvalue) == bool else False
+
+    @is_rvalue.setter
+    def is_rvalue(self, b: bool) -> None:
+        self._is_rvalue = b
+        # for child in [self.left, self.middle, self.right]:
+        #     if child and child._is_rvalue is None:
+        #         child.is_rvalue = b
 
     @property
     def type(self) -> TokenType:
@@ -61,7 +78,7 @@ class ASTNode:
         return self.type == o.type and self.token.value == o.token.value
 
     def __str__(self):
-        out = "ASTNode:\n"
+        out = f"ASTNode{' (rvalue)' if self.is_rvalue else ''}:\n"
         out += f"\tData: {self.token.type} {str(self.token.value)}\n"
         if self.left:
             out += f"\tLeft: {self.left.token.type} {str(self.left.token.value)}\n"

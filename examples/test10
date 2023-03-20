@@ -1,0 +1,20 @@
+int main() {
+    int a; int b; int c;
+    a = b = c = 3;
+    print a; print b; print c;
+
+    int x; int *y;
+    y = &x; *y = 5;
+    print x;
+
+    int **z; z = &y; **z = 19;
+    print x;
+
+    // We will eventually un-comment this field
+    // when we add local variables
+    // int **q; q = &y; 
+    // print **q;
+    // *q = &a;
+    // *y = 7;
+    // print a; // 7
+}
