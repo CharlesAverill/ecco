@@ -889,7 +889,6 @@ def llvm_dereference(value: LLVMValue) -> LLVMValue:
     Returns:
         LLVMValue: Register containing dereferenced contents
     """
-    print("Dereference!", value)
     out = LLVMValue(
         LLVMValueType.VIRTUAL_REGISTER,
         get_next_local_virtual_register(),
