@@ -68,9 +68,11 @@ class LLVMValue:
 
     def __repr__(self) -> str:
         append: str = ""
-        if self.value_type == LLVMValueType.VIRTUAL_REGISTER:
-            append = f": %{self.int_value}"
+        if self.value_type in [LLVMValueType.VIRTUAL_REGISTER, LLVMValueType.CONSTANT]:
+            append = f": {'%' if self.value_type == LLVMValueType.VIRTUAL_REGISTER else ''}{self.int_value}"
+        if self.just_loaded:
+            append += f" (from {self.just_loaded})"
         return (
-            f"LLVMValue ({self.value_type} {self.number_type}{'*' * self.pointer_depth})"
+            f"LLVMValue ({self.value_type} {self.number_type}{self.references})"
             + append
         )

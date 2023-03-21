@@ -517,12 +517,12 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
 
 
 def llvm_store_dereference(destination: LLVMValue, value: LLVMValue):
-    if not value.is_register:
-        if destination.pointer_depth > value.pointer_depth + 1:
-            destination = llvm_ensure_registers_loaded(
-                [destination], value.pointer_depth + 1
-            )[0]
-
+    print(value)
+    print(destination)
+    destination = llvm_ensure_registers_loaded(
+        [destination], value.pointer_depth + 1
+    )[0]
+    if not destination.just_loaded or destination.pointer_depth == value.pointer_depth + 1:
         LLVM_OUT_FILE.writelines(
             [
                 TAB,

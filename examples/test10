@@ -7,7 +7,9 @@ int main() {
     y = &x; *y = 5;
     print x;
 
-    int **z; z = &y; **z = 19;
+    int n;
+    n = 50;
+    int **z; z = &y; **z = n;
     print x;
 
     // We will eventually un-comment this field
