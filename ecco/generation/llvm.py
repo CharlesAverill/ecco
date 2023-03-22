@@ -517,8 +517,6 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
 
 
 def llvm_store_dereference(destination: LLVMValue, value: LLVMValue):
-    print(value)
-    print(destination)
     destination = llvm_ensure_registers_loaded(
         [destination], value.pointer_depth + 1
     )[0]

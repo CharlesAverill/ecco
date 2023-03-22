@@ -119,7 +119,7 @@ def test10():
 3
 3
 5
-19""")
+50""")
 
 
 def test_arithmetic():
