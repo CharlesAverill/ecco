@@ -58,6 +58,7 @@ class TokenType(Enum):
     RIGHT_BRACE = "}"
     LEFT_PARENTHESIS = "("
     RIGHT_PARENTHESIS = ")"
+    COMMA = ","
 
     def is_type(self):
         return int(TokenType.VOID) <= int(self) <= int(TokenType.CHAR)

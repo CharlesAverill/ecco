@@ -3,7 +3,7 @@ from ..utils import EccoInternalTypeError, EccoIdentifierError
 from ..generation.symboltable import SymbolTableEntry
 from ..generation.types import Type, Function, Number
 from .ecco_ast import ASTNode
-from typing import Union
+from typing import Union, Dict
 
 
 def function_declaration_statement() -> ASTNode:
@@ -13,7 +13,8 @@ def function_declaration_statement() -> ASTNode:
         ASTNode: AST containing entire program within function
     """
     from .statement import match_token, parse_statements, match_type
-    from ..ecco import GLOBAL_SYMBOL_TABLE, GLOBAL_SCANNER
+    from ..ecco import GLOBAL_SYMBOL_TABLE, GLOBAL_SCANNER, SYMBOL_TABLE_STACK
+    from ..generation.llvmvalue import LLVMValue, LLVMValueType
 
     return_type: Number = match_type()
     identifier: Union[str, int] = match_token(TokenType.IDENTIFIER)[0]
@@ -28,13 +29,36 @@ def function_declaration_statement() -> ASTNode:
             f'Function with name "{identifier}" already defined in this scope'
         )
 
+    match_token(TokenType.LEFT_PARENTHESIS)
+
+    # Grab arguments
+    arguments: Dict[str, Number] = {}
+    while GLOBAL_SCANNER.current_token.type != TokenType.RIGHT_PARENTHESIS:
+        if len(arguments) and GLOBAL_SCANNER.current_token.type == TokenType.COMMA:
+            match_token(TokenType.COMMA)
+
+        arg_type: Number = match_type()
+        arg_name: str = str(match_token(TokenType.IDENTIFIER)[0])
+
+        arguments.update({arg_name: arg_type})
+
+        SYMBOL_TABLE_STACK.LST[arg_name] = SymbolTableEntry(
+            arg_name,
+            Type(arg_type.ntype.to_tokentype(), arg_type),
+            LLVMValue(
+                LLVMValueType.VIRTUAL_REGISTER,
+                arg_name,
+                arg_type.ntype,
+                arg_type.pointer_depth,
+            ),
+        )
+
+    match_token(TokenType.RIGHT_PARENTHESIS)
+
     GLOBAL_SCANNER.current_function_name = identifier
     GLOBAL_SYMBOL_TABLE[identifier] = SymbolTableEntry(
-        identifier, Type(TokenType.FUNCTION, Function(return_type))
+        identifier, Type(TokenType.FUNCTION, Function(return_type, arguments))
     )
-
-    match_token(TokenType.LEFT_PARENTHESIS)
-    match_token(TokenType.RIGHT_PARENTHESIS)
 
     return ASTNode(
         Token(TokenType.FUNCTION, identifier), parse_statements(), None, None
@@ -63,9 +87,8 @@ def declaration_statement() -> None:
         )
 
     num.pointer_depth += 1
-    GLOBAL_SYMBOL_TABLE.update(
-        ident,
-        SymbolTableEntry(ident, Type(num.ntype.to_tokentype(), num)),
+    GLOBAL_SYMBOL_TABLE[ident] = SymbolTableEntry(
+        ident, Type(num.ntype.to_tokentype(), num)
     )
 
     ste = GLOBAL_SYMBOL_TABLE[ident]

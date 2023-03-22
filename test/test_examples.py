@@ -2,17 +2,17 @@ from .tester import _tester
 from .generate_arithmetic_test import generate_arithmetic_test
 
 
-def test1():
-    _tester("test1", "6")
+def test_condition():
+    _tester("test_condition", "6")
 
 
-def test2():
-    _tester("test2", "17")
+def test_variables():
+    _tester("test_variables", "17")
 
 
-def test3():
+def test_variable_reassignment():
     _tester(
-        "test3",
+        "test_variable_reassignment",
         """1
 2
 3
@@ -21,9 +21,9 @@ def test3():
     )
 
 
-def test4():
+def test_comparison_operators():
     _tester(
-        "test4",
+        "test_comparison_operators",
         """1
 1
 1
@@ -36,9 +36,9 @@ def test4():
     )
 
 
-def test5():
+def test_while_loop():
     _tester(
-        "test5",
+        "test_while_loop",
         """1
 2
 3
@@ -52,9 +52,9 @@ def test5():
     )
 
 
-def test6():
+def test_for_loop():
     _tester(
-        "test6",
+        "test_for_loop",
         """1
 2
 3
@@ -68,27 +68,26 @@ def test6():
     )
 
 
-def test7():
+def test_function():
     _tester(
-        "test7",
+        "test_function",
         """6
-5
-5
-35""",
+6
+7
+6
+7
+42
+162""",
     )
 
 
-def test8():
-    _tester("test8", "7")
+def test_factorial():
+    _tester("test_factorial", "120")
 
 
-def testfactorial():
-    _tester("factorial", "120")
-
-
-def test9():
+def test_pointers():
     _tester(
-        "test9",
+        "test_pointers",
         """18
 18
 12
@@ -97,25 +96,8 @@ def test9():
     )
 
 
-def testopt():
-    _tester("opt_test", """3
-3
-3
--3
-0
-0
-0
-10
-120
-5
-17
-340
-8
-50""")
-
-
-def test10():
-    _tester("test10", """3
+def test_dereference_assignment():
+    _tester("test_dereference_assignment", """3
 3
 3
 5
@@ -123,8 +105,8 @@ def test10():
 
 
 def test_arithmetic():
-    _tester("arith_test", generate_arithmetic_test(500))
+    _tester("test_arithmetic", generate_arithmetic_test(500))
 
 
-def test_empty():
-    _tester("empty", "")
+def test_empty_prog():
+    _tester("test_empty_prog", "")

@@ -1,0 +1,20 @@
+int fred(int x) {
+    print x;
+    x = x + 1;
+    print x;
+    return 20 + x;
+}
+
+int bob(int x, int y) {
+    return x * y;
+}
+
+int main() {
+    int a;
+    a = 6;
+    print a;
+    fred(a);
+    print fred(a) + 15;
+    print bob(9, 18);
+    return 0;
+}

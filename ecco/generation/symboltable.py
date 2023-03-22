@@ -1,7 +1,8 @@
 from typing import Optional, List, Callable
 from abc import ABC, abstractmethod
 from .types import Type, NumberType, Number
-from ..utils import EccoInternalTypeError
+from ..utils import EccoInternalTypeError, EccoIdentifierError
+from ..generation.llvmvalue import LLVMValue, LLVMValueType
 
 
 # https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function#FNV_offset_basis
@@ -11,11 +12,13 @@ FNV_PRIME = 0x100000001B3
 
 
 class SymbolTableEntry:
-    def __init__(self, _identifier_name: str, t: Type):
+    def __init__(self, _identifier_name: str, t: Type, ll: LLVMValue = None):
         self.identifier_name: str = _identifier_name
         self.identifier_type: Type = t
 
         self.next: Optional[SymbolTableEntry] = None
+
+        self.latest_llvmvalue = LLVMValue(LLVMValueType.NONE) if ll is None else ll
 
     @property
     def ntype(self) -> NumberType:
@@ -72,16 +75,25 @@ class HashTableSymbolTable(SymbolTableInterface):
         """Length of symbol table"""
         return len(self.data)
 
-    def update(self, identifier: str, entry: Optional[SymbolTableEntry]) -> bool:
+    def update(
+        self,
+        identifier: str,
+        entry: Optional[SymbolTableEntry],
+        error_if_exists: bool = True,
+    ) -> bool:
         """Assign a new value to an identifier
 
         Args:
             identifier (str): Identifier to assign to
             entry (Optional[SymbolTableEntry]): Value to assign
+            error_if_exists (bool): Raise an IdentifierError if the symbol already exists in the table
 
         Returns:
             bool: If the symbol already existed in the table
         """
+        if error_if_exists and self[identifier]:
+            raise EccoIdentifierError(f"Redefinition of existing variable {identifier}")
+
         id_index = self.hash(identifier)
 
         symbol_already_exists = True
@@ -198,3 +210,45 @@ class FPSymbolTable(SymbolTableInterface):
 
 
 SymbolTable = HashTableSymbolTable
+
+
+class SymbolTableStack:
+    def __init__(self):
+        self.tables: List[SymbolTable] = [SymbolTable()]  # Global Symbol Table
+
+    def push(self) -> None:
+        self.tables.append(SymbolTable())
+
+    def peek(self) -> SymbolTable:
+        return self.tables[-1]
+
+    def pop(self) -> SymbolTable:
+        return self.tables.pop()
+
+    @property
+    def GST(self) -> SymbolTable:
+        return self.tables[0]
+
+    @property
+    def LST(self) -> SymbolTable:
+        return self.peek()
+
+    def get(self, key: str) -> Optional[SymbolTableEntry]:
+        for table in self.tables:
+            if table[key]:
+                return table[key]
+        return None
+
+    def __getitem__(self, key: str) -> Optional[SymbolTableEntry]:
+        return self.get(key)
+
+    def __setitem__(self, key: str, value: Optional[SymbolTableEntry]):
+        for table in self.tables:
+            if table[key]:
+                table[key] = value
+                break
+        else:
+            self.LST[key] = value
+
+    def __delitem__(self, key: str):
+        self.__setitem__(key, None)

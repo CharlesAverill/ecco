@@ -2,11 +2,12 @@ from argparse import Namespace
 
 from .scanning import Scanner
 from .utils import get_args, setup_tracebacks
-from .generation.symboltable import SymbolTable
+from .generation.symboltable import SymbolTable, SymbolTableStack
 
 GLOBAL_SCANNER: Scanner
 ARGS: Namespace
-GLOBAL_SYMBOL_TABLE: SymbolTable
+SYMBOL_TABLE_STACK: SymbolTableStack = SymbolTableStack()
+GLOBAL_SYMBOL_TABLE: SymbolTable = SYMBOL_TABLE_STACK.GST
 
 
 def main():
@@ -23,7 +24,8 @@ def main():
     # We will do some imports here to avoid "partially initialized" errors
     from .generation import generate_llvm
 
-    GLOBAL_SYMBOL_TABLE = SymbolTable()
+    # SYMBOL_TABLE_STACK = SymbolTableStack()
+    # GLOBAL_SYMBOL_TABLE = SYMBOL_TABLE_STACK.GST
     generate_llvm()
 
     GLOBAL_SCANNER.close()

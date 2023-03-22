@@ -6,7 +6,7 @@ from .llvmstackentry import LLVMStackEntry
 from .symboltable import SymbolTableEntry
 from .llvmvalue import LLVMValue, LLVMValueType
 from .types import NumberType, Function, Number
-from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE
+from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE, SYMBOL_TABLE_STACK
 from .translate import (
     LLVM_OUT_FILE,
     get_next_local_virtual_register,
@@ -125,7 +125,7 @@ def llvm_ensure_registers_loaded(
                 [
                     TAB,
                     f"%{new_reg} = load {registers_to_check[i].number_type}{loaded_registers[-1].references},"
-                    f" {registers_to_check[i].number_type}{registers_to_check[i].references} %{registers_to_check[i].int_value}",
+                    f" {registers_to_check[i].number_type}{registers_to_check[i].references} %{registers_to_check[i].register_name}",
                     NEWLINE,
                 ]
             )
@@ -158,7 +158,7 @@ def llvm_int_resize(register: LLVMValue, new_width: NumberType) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_reg_num} = {op} {register.number_type} %{register.int_value} to {new_width}",
+            f"%{out_reg_num} = {op} {register.number_type} %{register.register_name} to {new_width}",
             NEWLINE,
         ]
     )
@@ -183,7 +183,7 @@ def llvm_add(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = add nsw {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.int_value}, {'%' if right_vr.is_register else ''}{right_vr.int_value}",
+            f"%{out_vr} = add nsw {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.register_name}, {'%' if right_vr.is_register else ''}{right_vr.register_name}",
             NEWLINE,
         ]
     )
@@ -208,7 +208,7 @@ def llvm_sub(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = sub nsw {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.int_value}, {'%' if right_vr.is_register else ''}{right_vr.int_value}",
+            f"%{out_vr} = sub nsw {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.register_name}, {'%' if right_vr.is_register else ''}{right_vr.register_name}",
             NEWLINE,
         ]
     )
@@ -233,7 +233,7 @@ def llvm_mul(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = mul nsw {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.int_value}, {'%' if right_vr.is_register else ''}{right_vr.int_value}",
+            f"%{out_vr} = mul nsw {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.register_name}, {'%' if right_vr.is_register else ''}{right_vr.register_name}",
             NEWLINE,
         ]
     )
@@ -258,7 +258,7 @@ def llvm_div(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = udiv {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.int_value}, {'%' if right_vr.is_register else ''}{right_vr.int_value}",
+            f"%{out_vr} = udiv {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.register_name}, {'%' if right_vr.is_register else ''}{right_vr.register_name}",
             NEWLINE,
         ]
     )
@@ -363,7 +363,7 @@ def llvm_comparison(token: Token, left_vr: LLVMValue, right_vr: LLVMValue) -> LL
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr.int_value} = icmp {operator} {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.int_value}, {'%' if right_vr.is_register else ''}{right_vr.int_value}",
+            f"%{out_vr.register_name} = icmp {operator} {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.register_name}, {'%' if right_vr.is_register else ''}{right_vr.register_name}",
             NEWLINE,
         ]
     )
@@ -429,7 +429,7 @@ def llvm_load_global(name: str) -> LLVMValue:
     """
     out_vr: int = get_next_local_virtual_register()
 
-    ste = GLOBAL_SYMBOL_TABLE[name]
+    ste = SYMBOL_TABLE_STACK[name]
     if not ste:
         raise EccoFatalException("", "Tried to load nonexistent global variable")
     elif type(ste.identifier_type.contents) != Number:
@@ -465,7 +465,7 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
         name (str): Global variable to store into
         rvalue_reg (int): Register containing the contents to store into the variable
     """
-    ste = GLOBAL_SYMBOL_TABLE[name]
+    ste = SYMBOL_TABLE_STACK[name]
     if ste:
         if (
             type(ste.identifier_type.contents) == Number
@@ -495,7 +495,7 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
             LLVM_OUT_FILE.writelines(
                 [
                     TAB,
-                    f"store {rvalue.number_type}{rvalue.references} %{rvalue.int_value}, "
+                    f"store {rvalue.number_type}{rvalue.references} %{rvalue.register_name}, "
                     f"{ste.identifier_type.contents.ntype}{ste.identifier_type.contents.references} @{name}",
                     NEWLINE,
                 ]
@@ -516,15 +516,33 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
         )
 
 
+def llvm_store_local(var: Optional[SymbolTableEntry], rvalue: LLVMValue):
+    """Store a value into a local variable
+
+    Args:
+        name (SymbolTableEntry): Local variable to store into
+        rvalue_reg (int): Register containing the contents to store into the variable
+    """
+    if not var:
+        raise EccoInternalTypeError(
+            "SymbolTableEntry", "Nonetype", "llvm.py:llvm_store_local"
+        )
+
+    var.latest_llvmvalue = rvalue
+
+
 def llvm_store_dereference(destination: LLVMValue, value: LLVMValue):
-    destination = llvm_ensure_registers_loaded(
-        [destination], value.pointer_depth + 1
-    )[0]
-    if not destination.just_loaded or destination.pointer_depth == value.pointer_depth + 1:
+    destination = llvm_ensure_registers_loaded([destination], value.pointer_depth + 1)[
+        0
+    ]
+    if (
+        not destination.just_loaded
+        or destination.pointer_depth == value.pointer_depth + 1
+    ):
         LLVM_OUT_FILE.writelines(
             [
                 TAB,
-                f"store {value.number_type}{value.references} {'%' if value.is_register else ''}{value.int_value}, {destination.number_type}{destination.references} %{destination.int_value}",
+                f"store {value.number_type}{value.references} {'%' if value.is_register else ''}{value.register_name}, {destination.number_type}{destination.references} %{destination.register_name}",
                 NEWLINE,
             ]
         )
@@ -532,7 +550,7 @@ def llvm_store_dereference(destination: LLVMValue, value: LLVMValue):
         LLVM_OUT_FILE.writelines(
             [
                 TAB,
-                f"store {value.number_type}{value.references} {'%' if value.is_register else ''}{value.int_value}, {destination.number_type}{destination.references}* @{destination.just_loaded}",
+                f"store {value.number_type}{value.references} {'%' if value.is_register else ''}{value.register_name}, {destination.number_type}{destination.references}* @{destination.just_loaded}",
                 NEWLINE,
             ]
         )
@@ -549,7 +567,7 @@ def llvm_stack_allocation(entries: List[LLVMStackEntry]):
         LLVM_OUT_FILE.writelines(
             [
                 TAB,
-                f"%{entry.register.int_value} = alloca {entry.register.number_type}{entry.register.references}, align {entry.align_bytes}",
+                f"%{entry.register.register_name} = alloca {entry.register.number_type}{entry.register.references}, align {entry.align_bytes}",
                 NEWLINE,
             ]
         )
@@ -571,7 +589,7 @@ def llvm_print_int(reg: LLVMValue) -> None:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @print_int_fstring , i32 0, i32 0), {reg.number_type}{reg.references} {'%' if reg.is_register else ''}{reg.int_value})",
+            f"call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @print_int_fstring , i32 0, i32 0), {reg.number_type}{reg.references} {'%' if reg.is_register else ''}{reg.register_name})",
             NEWLINE,
         ]
     )
@@ -645,7 +663,7 @@ def llvm_conditional_jump(
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"br {condition_register.number_type} %{condition_register.int_value}, label %{PURPLE_LABEL_PREFIX}{true_label.int_value}, label %{PURPLE_LABEL_PREFIX}{false_label.int_value}",
+            f"br {condition_register.number_type} %{condition_register.register_name}, label %{PURPLE_LABEL_PREFIX}{true_label.int_value}, label %{PURPLE_LABEL_PREFIX}{false_label.int_value}",
             NEWLINE,
         ]
     )
@@ -666,7 +684,7 @@ def llvm_compare_jump(
         false_label (LLVMValue): Label to jump to if condition_register = 0
 
     Returns:
-        LLVMValue: _description_
+        LLVMValue: Result of comparison, i1
     """
     comparison_result: LLVMValue = llvm_comparison(comparison_type, left_vr, right_vr)
 
@@ -679,7 +697,7 @@ def llvm_compare_jump(
     return comparison_result
 
 
-def llvm_function_preamble(function_name: str) -> None:
+def llvm_function_preamble(function_name: str) -> List[LLVMValue]:
     """Generate preamble for a given function
 
     Args:
@@ -688,6 +706,9 @@ def llvm_function_preamble(function_name: str) -> None:
     Raises:
         EccoIdentifierError: If function name is undeclared
         EccoInternalTypeError: If provided name does not match a Function type
+
+    Returns:
+        LLVMValue: List of LLVMValues containing references to function argument variables
     """
     from .symboltable import SymbolTableEntry
 
@@ -696,7 +717,7 @@ def llvm_function_preamble(function_name: str) -> None:
         raise EccoIdentifierError(
             "Tried to generate function preamble for undeclared function"
         )
-    elif entry.identifier_type.type != Function:
+    elif type(entry.identifier_type.contents) != Function:
         raise EccoInternalTypeError(
             "Function",
             str(entry.identifier_type.type),
@@ -705,10 +726,25 @@ def llvm_function_preamble(function_name: str) -> None:
 
     LLVM_OUT_FILE.writelines(
         [
-            f"define dso_local {entry.identifier_type.llvm_repr} @{function_name}() #0 {{",
+            f"define dso_local {entry.identifier_type.llvm_repr} @{function_name}(",
+            entry.identifier_type.contents.args_llvm_repr,
+            ") #0 {",
             NEWLINE,
         ]
     )
+
+    arguments_llvmvalues: List[LLVMValue] = []
+    for arg_name, arg_num in entry.identifier_type.contents.arguments.items():
+        arguments_llvmvalues.append(
+            LLVMValue(
+                LLVMValueType.VIRTUAL_REGISTER,
+                arg_name,
+                arg_num.ntype,
+                arg_num.pointer_depth,
+            )
+        )
+
+    return arguments_llvmvalues
 
 
 def llvm_function_postamble(function_name: str) -> None:
@@ -774,7 +810,9 @@ def llvm_return(return_value: LLVMValue, function_name: str) -> None:
         [
             TAB,
             f"ret {return_value.number_type} ",
-            f"{'%' if return_value.is_register else ''}{return_value.int_value}" if return_value.number_type != NumberType.VOID else "",
+            f"{'%' if return_value.is_register else ''}{return_value.register_name}"
+            if return_value.number_type != NumberType.VOID
+            else "",
             NEWLINE,
         ]
     )
@@ -782,7 +820,7 @@ def llvm_return(return_value: LLVMValue, function_name: str) -> None:
     get_next_local_virtual_register()
 
 
-def llvm_call_function(argument: LLVMValue, function_name: str) -> LLVMValue:
+def llvm_call_function(arguments: List[LLVMValue], function_name: str) -> LLVMValue:
     """Generate function call statement
 
     Args:
@@ -794,7 +832,7 @@ def llvm_call_function(argument: LLVMValue, function_name: str) -> LLVMValue:
         EccoFatalException: If provided name does not match a Function type
 
     Returns:
-        LLVMValue: _description_
+        LLVMValue: Value of evaluated function call
     """
     out: LLVMValue = LLVMValue(LLVMValueType.NONE)
 
@@ -818,15 +856,33 @@ def llvm_call_function(argument: LLVMValue, function_name: str) -> LLVMValue:
             get_next_local_virtual_register(),
             entry.identifier_type.contents.return_type.ntype,
         )
-        LLVM_OUT_FILE.writelines([f"%{out.int_value} = "])
+        LLVM_OUT_FILE.writelines([f"%{out.register_name} = "])
         call_type = str(out.number_type)
 
-    LLVM_OUT_FILE.writelines([f"call {call_type} () @{function_name}()", NEWLINE])
+    LLVM_OUT_FILE.writelines(
+        [
+            f"call {call_type} (",
+            # Argument types
+            ", ".join(
+                [f"{value.number_type}{value.references}" for value in arguments]
+            ),
+            f") @{function_name}(",
+            # Arguments
+            ", ".join(
+                [
+                    f"{value.number_type}{value.references} {'%' if value.is_register else ''}{value.register_name}"
+                    for value in arguments
+                ]
+            ),
+            ")",
+            NEWLINE,
+        ]
+    )
 
     return out
 
 
-def llvm_get_address(identifier: str):
+def llvm_get_address(identifier: str) -> LLVMValue:
     """Store the address of an identifier in a virtual register
 
     Args:
@@ -837,9 +893,9 @@ def llvm_get_address(identifier: str):
         EccoInternalTypeError: If provided name does not match Number type
 
     Returns:
-        _type_: _description_
+        LLVMValue: LLVMValue containing virtual register containing identifier address
     """
-    ste = GLOBAL_SYMBOL_TABLE[identifier]
+    ste = SYMBOL_TABLE_STACK[identifier]
     if not ste:
         raise EccoIdentifierError(
             f"Undeclared identifier {identifier} was allowed to propagate to LLVM generation",
@@ -897,7 +953,7 @@ def llvm_dereference(value: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out.int_value} = load {out.number_type}{out.references}, {value.number_type}{value.references} %{value.int_value}",
+            f"%{out.register_name} = load {out.number_type}{out.references}, {value.number_type}{value.references} %{value.register_name}",
             NEWLINE,
         ]
     )

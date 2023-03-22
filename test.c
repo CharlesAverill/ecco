@@ -1,9 +1,5 @@
-int fred() {
-	int x;
-	int y;
-	x = 5;
-	y = x - 1;
-
+int fact(int x) {
+	int y = x - 1;
 	while (y > 0) {
 		x = x * y;
 		y = y - 1;
@@ -13,5 +9,5 @@ int fred() {
 }
 
 int main() {
-	print fred(0);
+	printf("%d\n", fact(5));
 }

@@ -23,7 +23,7 @@ def generate_arithmetic_test(n: int):
 
     out = "int main() {\n" + out.replace("(", "").replace(")", "") + "}"
 
-    with open(Path(__file__).parents[1] / "examples" / "arith_test", "w") as file:
+    with open(Path(__file__).parents[1] / "examples" / "test_arithmetic", "w") as file:
         file.write(out)
 
     return expected_out

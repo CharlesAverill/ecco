@@ -41,13 +41,13 @@ def parse_terminal_node() -> ASTNode:
     Returns:
         ASTNode: An ASTNode storing the parsed terminal token information
     """
-    from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
+    from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
 
     out: ASTNode
     if GLOBAL_SCANNER.current_token.type == TokenType.INTEGER_LITERAL:
         out = ASTNode(GLOBAL_SCANNER.current_token, None, None, None)
     elif GLOBAL_SCANNER.current_token.type == TokenType.IDENTIFIER:
-        ident: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[
+        ident: Optional[SymbolTableEntry] = SYMBOL_TABLE_STACK[
             str(GLOBAL_SCANNER.current_token.value)
         ]
         if not ident:
@@ -135,15 +135,22 @@ def function_call_expression(function_name_override: str = "") -> ASTNode:
             "Tried to call function with identifier bound to number value"
         )
 
+    expected_args = ident.identifier_type.contents.arguments
+
     match_token(TokenType.LEFT_PARENTHESIS)
 
-    # Functions will take one argument for now
-    single_argument: ASTNode = parse_binary_expression()
+    passed_args: List[ASTNode] = []
+    for arg_index in range(len(expected_args)):
+        if arg_index > 0:
+            match_token(TokenType.COMMA)
+        # We won't do type checking here yet
+        passed_args.append(parse_binary_expression())
 
     match_token(TokenType.RIGHT_PARENTHESIS)
 
     out: ASTNode = ASTNode(
-        Token(TokenType.FUNCTION_CALL, ident.identifier_name), single_argument
+        Token(TokenType.FUNCTION_CALL, ident.identifier_name),
+        function_call_arguments=passed_args,
     )
 
     return out
@@ -190,7 +197,7 @@ def _parse_binary_expression_recursive(previous_token_precedence: int) -> ASTNod
 
     # Reached the end of a statement
     node_type = GLOBAL_SCANNER.current_token.type
-    if node_type in [TokenType.SEMICOLON, TokenType.RIGHT_PARENTHESIS]:
+    if node_type in [TokenType.SEMICOLON, TokenType.RIGHT_PARENTHESIS, TokenType.COMMA]:
         left.is_rvalue = True
         return left
     elif node_type == TokenType.EOF:
@@ -223,7 +230,11 @@ def _parse_binary_expression_recursive(previous_token_precedence: int) -> ASTNod
 
         # Update node_type and check for end of statement
         node_type = GLOBAL_SCANNER.current_token.type
-        if node_type in [TokenType.SEMICOLON, TokenType.RIGHT_PARENTHESIS]:
+        if node_type in [
+            TokenType.SEMICOLON,
+            TokenType.RIGHT_PARENTHESIS,
+            TokenType.COMMA,
+        ]:
             break
         elif node_type == TokenType.EOF:
             raise EccoEOFMissingSemicolonError()

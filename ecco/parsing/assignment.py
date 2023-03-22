@@ -16,7 +16,7 @@ def assignment_statement() -> ASTNode:
     """
     from .statement import match_token
     from .expression import parse_binary_expression
-    from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
+    from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
     from ..generation import SymbolTableEntry
 
     left: ASTNode
@@ -31,7 +31,7 @@ def assignment_statement() -> ASTNode:
             "ecco/parsing/assignment.py:assignment_statement",
         )
 
-    symbol: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[ident]
+    symbol: Optional[SymbolTableEntry] = SYMBOL_TABLE_STACK[ident]
     if symbol is None:
         raise EccoFatalException("", f'Undefined variable "{ident}"')
     # elif type(symbol.identifier_type.contents) == Function:

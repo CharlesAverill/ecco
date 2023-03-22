@@ -203,9 +203,10 @@ def ast_to_llvm(
         llvm_get_address,
         llvm_dereference,
         llvm_store_dereference,
+        llvm_store_local,
     )
 
-    from ..ecco import ARGS
+    from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE, SYMBOL_TABLE_STACK
 
     left_vr: LLVMValue
     right_vr: LLVMValue
@@ -259,18 +260,31 @@ def ast_to_llvm(
     # Rvalue Identifier
     elif root.type == TokenType.IDENTIFIER:
         if root.is_rvalue or parent_operation == TokenType.DEREFERENCE:
-            return llvm_load_global(str(root.token.value))
+            if GLOBAL_SYMBOL_TABLE[str(root.token.value)]:
+                return llvm_load_global(str(root.token.value))
+            else:
+                ste = SYMBOL_TABLE_STACK[str(root.token.value)]
+                if ste:
+                    return ste.latest_llvmvalue
+                else:
+                    raise EccoInternalTypeError(
+                        "STE with LLVMValue",
+                        "STE without LLVMValue",
+                        "translate.py:ast_to_llvm",
+                    )
         else:
             return LLVMValue(LLVMValueType.NONE)
-    # Lvalue Identifier
-    # elif root.type == TokenType.LEFTVALUE_IDENTIFIER:
-    #     llvm_store_global(str(root.token.value), rvalue)
-    #     return rvalue
     elif root.type == TokenType.ASSIGN:
         if root.right:
             if root.right.type == TokenType.IDENTIFIER:
-                llvm_store_global(str(root.right.token.value), left_vr)
-                return left_vr
+                if GLOBAL_SYMBOL_TABLE[str(root.right.token.value)]:
+                    llvm_store_global(str(root.right.token.value), left_vr)
+                    return left_vr
+                else:
+                    llvm_store_local(
+                        SYMBOL_TABLE_STACK[str(root.right.token.value)], left_vr
+                    )
+                    return left_vr
             elif root.right.type == TokenType.DEREFERENCE:
                 llvm_store_dereference(right_vr, left_vr)
                 return left_vr
@@ -293,7 +307,14 @@ def ast_to_llvm(
         return LLVMValue(LLVMValueType.NONE)
     # Function call
     elif root.type == TokenType.FUNCTION_CALL:
-        return llvm_call_function(left_vr, str(root.token.value))
+        passed_llvmvalues = []
+        for passed_arg in root.function_call_arguments:
+            passed_llvmvalues.append(
+                ast_to_llvm(
+                    passed_arg, LLVMValue(LLVMValueType.NONE), TokenType.FUNCTION_CALL
+                )
+            )
+        return llvm_call_function(passed_llvmvalues, str(root.token.value))
     elif root.type == TokenType.AMPERSAND:
         return llvm_get_address(str(root.token.value))
     elif root.type == TokenType.DEREFERENCE:
@@ -326,14 +347,16 @@ def generate_llvm() -> None:
         llvm_postamble,
     )
     from ..parsing import function_declaration_statement
-    from ..ecco import GLOBAL_SCANNER
+    from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
 
     llvm_preamble()
 
     while GLOBAL_SCANNER.current_token.type != TokenType.EOF:
         translate_reinit()
+        SYMBOL_TABLE_STACK.push()
         root = function_declaration_statement()
         ast_to_llvm(root, LLVMValue(LLVMValueType.NONE), root.type)
+        SYMBOL_TABLE_STACK.pop()
 
     llvm_postamble()
 

@@ -1,6 +1,6 @@
 from enum import Enum
 from ..scanning.ecco_token import TokenType
-from typing import Union, Optional
+from typing import Union, Dict
 from ..utils import EccoInternalTypeError
 
 
@@ -73,10 +73,22 @@ class Number:
     def references(self) -> str:
         return "*" * self.pointer_depth
 
+    @property
+    def llvm_repr(self) -> str:
+        return f"{self.ntype}{self.references}"
+
 
 class Function:
-    def __init__(self, rtype: Number):
+    def __init__(self, rtype: Number, arguments: Dict[str, Number]):
         self.return_type: Number = rtype
+        self.arguments = arguments
+
+    @property
+    def args_llvm_repr(self) -> str:
+        return ", ".join(
+            f"{self.arguments[argname].llvm_repr} %{argname}"
+            for argname in self.arguments.keys()
+        )
 
 
 class Type:

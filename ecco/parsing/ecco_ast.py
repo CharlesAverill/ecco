@@ -12,7 +12,7 @@ class ASTNode:
         middle: Optional["ASTNode"] = None,
         right: Optional["ASTNode"] = None,
         tree_type: Number = Number(NumberType.INT, 0),
-        is_rvalue: bool = False,
+        function_call_arguments: List["ASTNode"] = [],
     ):
         """A class for storing Abstract Syntax Tree data
 
@@ -22,7 +22,6 @@ class ASTNode:
             left (Optional["ASTNode"], optional): Middle child. Defaults to None.
             right (Optional["ASTNode"], optional): Right child. Defaults to None.
             tree_type (Number): Number containing tree number data
-            is_rvalue (bool): Whether or not this tree stores rvalue data
         """
         self.token: Token = deepcopy(from_token)
 
@@ -40,6 +39,8 @@ class ASTNode:
 
         self._is_rvalue: Optional[bool] = None
         # self.is_rvalue = is_rvalue
+
+        self.function_call_arguments = function_call_arguments
 
         self.parent: ASTNode
 
