@@ -33,7 +33,7 @@ def function_declaration_statement() -> ASTNode:
     match_token(TokenType.LEFT_PARENTHESIS)
 
     # Grab arguments
-    arguments = OrderedDict()
+    arguments: OrderedDict[str, Number] = OrderedDict()
     while GLOBAL_SCANNER.current_token.type != TokenType.RIGHT_PARENTHESIS:
         if len(arguments) and GLOBAL_SCANNER.current_token.type == TokenType.COMMA:
             match_token(TokenType.COMMA)
@@ -66,15 +66,14 @@ def function_declaration_statement() -> ASTNode:
     )
 
 
-def declaration_statement() -> None:
+def declaration_statement() -> ASTNode:
     """Parse a declaration statement
 
     Raises:
         EccoInternalTypeError: If an incorrect Token value is encountered
     """
     from .statement import match_token, match_type
-    from ..ecco import GLOBAL_SCANNER, GLOBAL_SYMBOL_TABLE
-    from ..generation.llvm import llvm_declare_global
+    from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
 
     num = match_type()
 
@@ -87,13 +86,15 @@ def declaration_statement() -> None:
             "ecco/parsing/declaration.py:declaration_statement",
         )
 
-    num.pointer_depth += 1
-    GLOBAL_SYMBOL_TABLE[ident] = SymbolTableEntry(
+    # num.pointer_depth += 1
+    SYMBOL_TABLE_STACK.LST[ident] = SymbolTableEntry(
         ident, Type(num.ntype.to_tokentype(), num)
     )
 
-    ste = GLOBAL_SYMBOL_TABLE[ident]
+    ste = SYMBOL_TABLE_STACK.LST[ident]
     if ste and type(ste.identifier_type.contents) == Number:
-        llvm_declare_global(ident, 0, num)
+        return ASTNode(Token(TokenType.VAR_DECL, ident), tree_type=num)
+        # llvm_declare_global(ident, 0, num)
+        # ste.latest_llvmvalue = llvm_declare_local(ident, 0, num)
     else:
-        raise EccoIdentifierError("Failed to insert identifier into GST")
+        raise EccoIdentifierError("Failed to insert identifier into LST")

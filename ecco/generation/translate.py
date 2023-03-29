@@ -192,6 +192,7 @@ def ast_to_llvm(
         llvm_store_constant,
         llvm_load_global,
         llvm_store_global,
+        llvm_declare_local,
         llvm_print_int,
         llvm_comparison,
         llvm_compare_jump,
@@ -244,7 +245,9 @@ def ast_to_llvm(
         return llvm_binary_arithmetic(root.token, left_vr, right_vr)
     # Comparison operators
     elif root.token.is_comparison_operator():
-        left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr])
+        left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr], 
+                                                         min(left_vr.pointer_depth, right_vr.pointer_depth) - 
+                                                            1 if left_vr.is_likely_local_var else 0)
         if parent_operation in [TokenType.IF, TokenType.WHILE]:
             return llvm_compare_jump(root.token, left_vr, right_vr, label)
         else:
@@ -257,6 +260,12 @@ def ast_to_llvm(
                     LLVMValueType.CONSTANT, int(root.token.value), root.tree_type.ntype
                 )
             return llvm_store_constant(int(root.token.value))
+    # Local variable declaration
+    elif root.type == TokenType.VAR_DECL:
+        ste = SYMBOL_TABLE_STACK.LST[str(root.token.value)]
+        if not ste:
+            raise EccoFatalException(f"Lost track of variable '{root.token.value}'")
+        ste.latest_llvmvalue = llvm_declare_local(str(root.token.value), root.tree_type)
     # Rvalue Identifier
     elif root.type == TokenType.IDENTIFIER:
         if root.is_rvalue or parent_operation == TokenType.DEREFERENCE:
@@ -274,28 +283,32 @@ def ast_to_llvm(
                     )
         else:
             return LLVMValue(LLVMValueType.NONE)
+    # Assignment expression
     elif root.type == TokenType.ASSIGN:
-        if root.right:
-            if root.right.type == TokenType.IDENTIFIER:
-                if GLOBAL_SYMBOL_TABLE[str(root.right.token.value)]:
-                    llvm_store_global(str(root.right.token.value), left_vr)
-                    return left_vr
-                else:
-                    llvm_store_local(
-                        SYMBOL_TABLE_STACK[str(root.right.token.value)].latest_llvmvalue, left_vr
-                    )
-                    return left_vr
-            elif root.right.type == TokenType.DEREFERENCE:
-                llvm_store_dereference(right_vr, left_vr)
-                return left_vr
-
+        if not root.right:
             raise EccoInternalTypeError(
-                "Identifier or Dereference token",
-                str(root.right.type),
-                "translate.py:ast_to_llvm",
+                "two children", "nothing", "translate.py:ast_to_llvm"
             )
+        
+        if root.right.type == TokenType.IDENTIFIER:
+            if GLOBAL_SYMBOL_TABLE[str(root.right.token.value)]:
+                llvm_store_global(str(root.right.token.value), left_vr)
+                return left_vr
+            else:
+                llvm_store_local(
+                    # SYMBOL_TABLE_STACK[str(root.right.token.value)].latest_llvmvalue, 
+                    SYMBOL_TABLE_STACK[str(root.right.token.value)].latest_llvmvalue,
+                    left_vr
+                )
+                return left_vr
+        elif root.right.type == TokenType.DEREFERENCE:
+            llvm_store_dereference(right_vr, left_vr)
+            return left_vr
+
         raise EccoInternalTypeError(
-            "two children", "nothing", "translate.py:ast_to_llvm"
+            "Identifier or Dereference token",
+            str(root.right.type),
+            "translate.py:ast_to_llvm",
         )
     # Return statement
     elif root.type == TokenType.RETURN:
@@ -315,11 +328,15 @@ def ast_to_llvm(
                 )
             )
         return llvm_call_function(passed_llvmvalues, str(root.token.value))
+    # Reference variable
     elif root.type == TokenType.AMPERSAND:
         return llvm_get_address(str(root.token.value))
+    # Dereference variable
     elif root.type == TokenType.DEREFERENCE:
         if root.is_rvalue:
-            return llvm_dereference(left_vr)
+            # Quick fix: local variables are now 1 pointer deeper than normal
+            # and only they can be dereferenced, so just do an extra deref every time
+            return llvm_dereference(llvm_dereference(left_vr))
         else:
             return left_vr
     # Print statement

@@ -102,7 +102,12 @@ def test_dereference_assignment():
 3
 3
 5
-50""")
+1
+1
+50
+50
+50
+7""")
 
 
 def test_empty_prog():

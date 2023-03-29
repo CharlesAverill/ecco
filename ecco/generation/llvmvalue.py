@@ -69,6 +69,10 @@ class LLVMValue:
     @property
     def is_register(self) -> bool:
         return self.value_type == LLVMValueType.VIRTUAL_REGISTER
+    
+    @property
+    def is_likely_local_var(self) -> bool:
+        return self.is_register and self.str_value != ""
 
     @property
     def references(self) -> str:

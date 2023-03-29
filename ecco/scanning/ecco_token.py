@@ -54,6 +54,7 @@ class TokenType(Enum):
     # LEFTVALUE_IDENTIFIER = "%leftvalue identifier"
     FUNCTION = "%function"
     FUNCTION_CALL = "%function call"
+    VAR_DECL = "%variable declaration"
     LEFT_BRACE = "{"
     RIGHT_BRACE = "}"
     LEFT_PARENTHESIS = "("
