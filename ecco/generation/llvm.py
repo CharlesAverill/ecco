@@ -37,6 +37,11 @@ def llvm_preamble():
             NEWLINE,
             '@print_int_fstring = private unnamed_addr constant [4 x i8] c"%d\\0A\\00", align 1',
             NEWLINE,
+            "define dso_local i32 @printint(i32 %value) {", NEWLINE,
+            TAB, "call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @print_int_fstring , i32 0, i32 0), i32 %value)",
+            NEWLINE, TAB, "ret i32 %value",
+            NEWLINE, "}",
+            NEWLINE,
             LLVM_GLOBALS_PLACEHOLDER,
             NEWLINE,
             NEWLINE,
@@ -641,16 +646,19 @@ def llvm_print_int(reg: LLVMValue) -> None:
     reg = llvm_ensure_registers_loaded([reg], 
                                        0 #reg.pointer_depth
     )[0]
+    reg = llvm_int_resize(reg, NumberType.INT)
 
-    get_next_local_virtual_register()
+    # get_next_local_virtual_register()
 
-    LLVM_OUT_FILE.writelines(
-        [
-            TAB,
-            f"call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @print_int_fstring , i32 0, i32 0), {reg.number_type}{reg.references} {'%' if reg.is_register else ''}{reg.register_name})",
-            NEWLINE,
-        ]
-    )
+    llvm_call_function([reg], "printint")
+
+    # LLVM_OUT_FILE.writelines(
+    #     [
+    #         TAB,
+    #         f"call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @print_int_fstring , i32 0, i32 0), {reg.number_type}{reg.references} {'%' if reg.is_register else ''}{reg.register_name})",
+    #         NEWLINE,
+    #     ]
+    # )
 
 
 PURPLE_LABEL_PREFIX: str = "L"

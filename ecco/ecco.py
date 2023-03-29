@@ -1,8 +1,10 @@
 from argparse import Namespace
 
-from .scanning import Scanner
+from .scanning import Scanner, TokenType
 from .utils import get_args, setup_tracebacks
-from .generation.symboltable import SymbolTable, SymbolTableStack
+from .generation.symboltable import SymbolTable, SymbolTableStack, SymbolTableEntry
+
+from collections import OrderedDict
 
 GLOBAL_SCANNER: Scanner
 ARGS: Namespace
@@ -13,6 +15,8 @@ GLOBAL_SYMBOL_TABLE: SymbolTable = SYMBOL_TABLE_STACK.GST
 def main():
     """Entrypoint for the compiler"""
     global GLOBAL_SCANNER, ARGS, LLVM_OUT_FILE, GLOBAL_SYMBOL_TABLE
+    from .generation.types import Function, Number, NumberType, Type
+
     ARGS = get_args()
 
     GLOBAL_SCANNER = Scanner(ARGS.PROGRAM)
@@ -23,6 +27,15 @@ def main():
 
     # We will do some imports here to avoid "partially initialized" errors
     from .generation import generate_llvm
+
+    SYMBOL_TABLE_STACK.GST["printint"] = SymbolTableEntry("printint", 
+        Type(TokenType.FUNCTION, Function(
+            Number(NumberType.INT, 0), OrderedDict({
+                "value": Number(NumberType.INT, 0)
+            })
+        ))
+    )
+    
 
     # SYMBOL_TABLE_STACK = SymbolTableStack()
     # GLOBAL_SYMBOL_TABLE = SYMBOL_TABLE_STACK.GST
