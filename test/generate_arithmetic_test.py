@@ -18,12 +18,16 @@ def generate_arithmetic_test(n: int):
         for i in range(random.randint(5, 10)):
             last_expr = get_subexpression(last_expr)
 
-        out += f"\tprint {last_expr}; // {eval(last_expr)}\n"
+        out += f"\tprintint({last_expr}); // {eval(last_expr)}\n"
         expected_out += f"{eval(last_expr)}\n"
 
-    out = "int main() {\n" + out.replace("(", "").replace(")", "") + "}"
+    out = "int main() {\n" + out + "}"
+        # out.replace("(", "").replace(")", "") + "}"
 
     with open(Path(__file__).parents[1] / "examples" / "test_arithmetic", "w") as file:
         file.write(out)
 
     return expected_out
+
+if __name__ == "__main__":
+    generate_arithmetic_test(500)
