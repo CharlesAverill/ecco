@@ -234,7 +234,7 @@ class SymbolTableStack:
         return self.peek()
 
     def get(self, key: str) -> Optional[SymbolTableEntry]:
-        for table in self.tables:
+        for table in self.tables[::-1]:
             if table[key]:
                 return table[key]
         return None
