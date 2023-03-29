@@ -1,6 +1,6 @@
 from enum import Enum
 from ..scanning.ecco_token import TokenType
-from typing import Union, Dict
+from typing import Union, OrderedDict
 from ..utils import EccoInternalTypeError
 
 
@@ -79,7 +79,7 @@ class Number:
 
 
 class Function:
-    def __init__(self, rtype: Number, arguments: Dict[str, Number]):
+    def __init__(self, rtype: Number, arguments: OrderedDict[str, Number]):
         self.return_type: Number = rtype
         self.arguments = arguments
 

@@ -26,4 +26,5 @@ int recursive_fact(int x) {
 
 int main() {
 	print recursive_fact(5);
+	print iterative_fact(5);
 }

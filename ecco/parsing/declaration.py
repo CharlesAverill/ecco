@@ -3,7 +3,8 @@ from ..utils import EccoInternalTypeError, EccoIdentifierError
 from ..generation.symboltable import SymbolTableEntry
 from ..generation.types import Type, Function, Number
 from .ecco_ast import ASTNode
-from typing import Union, Dict
+from typing import Union
+from collections import OrderedDict
 
 
 def function_declaration_statement() -> ASTNode:
@@ -32,7 +33,7 @@ def function_declaration_statement() -> ASTNode:
     match_token(TokenType.LEFT_PARENTHESIS)
 
     # Grab arguments
-    arguments: Dict[str, Number] = {}
+    arguments = OrderedDict()
     while GLOBAL_SCANNER.current_token.type != TokenType.RIGHT_PARENTHESIS:
         if len(arguments) and GLOBAL_SCANNER.current_token.type == TokenType.COMMA:
             match_token(TokenType.COMMA)

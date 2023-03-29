@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from ..scanning import Token, TokenType
 from ..utils import EccoFatalException, EccoInternalTypeError, EccoIdentifierError
@@ -516,19 +516,29 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
         )
 
 
-def llvm_store_local(var: Optional[SymbolTableEntry], rvalue: LLVMValue):
+def llvm_store_local(
+    var: Union[LLVMValue, Optional[SymbolTableEntry]], rvalue: LLVMValue
+) -> None:
     """Store a value into a local variable
 
     Args:
-        name (SymbolTableEntry): Local variable to store into
+        name (Union[LLVMValue, Optional[SymbolTableEntry]]): Local variable to store into
         rvalue_reg (int): Register containing the contents to store into the variable
     """
-    if not var:
+    if type(var) == LLVMValue:
+        LLVM_OUT_FILE.writelines(
+            [
+                TAB,
+                f"store {rvalue.number_type}{rvalue.references} %{rvalue.register_name}, {var.number_type}{var.references} %{var.register_name}",
+                NEWLINE,
+            ]
+        )
+    elif var and type(var) == SymbolTableEntry:
+        var.latest_llvmvalue = rvalue
+    else:
         raise EccoInternalTypeError(
             "SymbolTableEntry", "Nonetype", "llvm.py:llvm_store_local"
         )
-
-    var.latest_llvmvalue = rvalue
 
 
 def llvm_store_dereference(destination: LLVMValue, value: LLVMValue):
@@ -582,7 +592,10 @@ def llvm_print_int(reg: LLVMValue) -> None:
         reg (LLVMValue): LLVMValue containing the register number of the
                          integer to print
     """
-    reg = llvm_ensure_registers_loaded([reg], reg.pointer_depth)[0]
+    print(reg)
+    reg = llvm_ensure_registers_loaded([reg], 
+                                       0 #reg.pointer_depth
+    )[0]
 
     get_next_local_virtual_register()
 
@@ -727,14 +740,15 @@ def llvm_function_preamble(function_name: str) -> List[LLVMValue]:
     LLVM_OUT_FILE.writelines(
         [
             f"define dso_local {entry.identifier_type.llvm_repr} @{function_name}(",
-            entry.identifier_type.contents.args_llvm_repr,
+            ", ".join([f"{arg_num.ntype}{arg_num.references} %{get_next_local_virtual_register() - 1}" for arg_num in entry.identifier_type.contents.arguments.values()]),
+            # entry.identifier_type.contents.args_llvm_repr,
             ") #0 {",
             NEWLINE,
         ]
     )
 
     arguments_llvmvalues: List[LLVMValue] = []
-    for arg_name, arg_num in entry.identifier_type.contents.arguments.items():
+    for i, (arg_name, arg_num) in enumerate(entry.identifier_type.contents.arguments.items()):
         arguments_llvmvalues.append(
             LLVMValue(
                 LLVMValueType.VIRTUAL_REGISTER,
@@ -743,6 +757,36 @@ def llvm_function_preamble(function_name: str) -> List[LLVMValue]:
                 arg_num.pointer_depth,
             )
         )
+
+        # Allocate stack space for the local variable
+        llvm_stack_allocation(
+            [LLVMStackEntry(arguments_llvmvalues[-1], arg_num.ntype.byte_width)]
+        )
+        # get_next_local_virtual_register()
+
+        # Store the value passed into the function into the newly alloc'd register
+        arguments_llvmvalues[-1].pointer_depth += 1
+        llvm_store_local(
+            arguments_llvmvalues[-1],
+            LLVMValue(
+                LLVMValueType.VIRTUAL_REGISTER,
+                i,
+                arg_num.ntype,
+                arg_num.pointer_depth,
+            ),
+        )
+
+        func_arg = SYMBOL_TABLE_STACK.LST[arg_name]
+        if not func_arg:
+            raise EccoFatalException(
+                f"Lost track of parameter '{arg_name}' in function definition '{function_name}'"
+            )
+        elif type(func_arg.identifier_type.contents) != Number:
+            raise EccoFatalException(
+                f"Tried to use non-number as parameter '{arg_name}' in function definition '{function_name}'"
+            )
+
+        func_arg.latest_llvmvalue = arguments_llvmvalues[-1]
 
     return arguments_llvmvalues
 

@@ -282,7 +282,7 @@ def ast_to_llvm(
                     return left_vr
                 else:
                     llvm_store_local(
-                        SYMBOL_TABLE_STACK[str(root.right.token.value)], left_vr
+                        SYMBOL_TABLE_STACK[str(root.right.token.value)].latest_llvmvalue, left_vr
                     )
                     return left_vr
             elif root.right.type == TokenType.DEREFERENCE:

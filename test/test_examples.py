@@ -82,7 +82,8 @@ def test_function():
 
 
 def test_factorial():
-    _tester("test_factorial", "120")
+    _tester("test_factorial", """120
+120""")
 
 
 def test_pointers():
@@ -104,9 +105,9 @@ def test_dereference_assignment():
 50""")
 
 
-def test_arithmetic():
-    _tester("test_arithmetic", generate_arithmetic_test(500))
-
-
 def test_empty_prog():
     _tester("test_empty_prog", "")
+
+
+def test_arithmetic():
+    _tester("test_arithmetic", generate_arithmetic_test(500))
