@@ -564,6 +564,7 @@ def llvm_store_local(
         elif type(var) == SymbolTableEntry:
             lvar = var.latest_llvmvalue
 
+        rvalue = llvm_ensure_registers_loaded([rvalue], lvar.pointer_depth - 1)[0]
         rvalue = llvm_int_resize(rvalue, lvar.number_type)
         
         LLVM_OUT_FILE.writelines(
