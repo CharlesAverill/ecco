@@ -166,7 +166,7 @@ def llvm_int_resize(register: LLVMValue, new_width: NumberType) -> LLVMValue:
 
     register = llvm_ensure_registers_loaded([register])[0]
 
-    op = "zext" if int(new_width) > int(register.number_type.byte_width) else "trunc"
+    op = "zext" if new_width.byte_width > register.number_type.byte_width else "trunc"
 
     out_reg_num = get_next_local_virtual_register()
 
@@ -696,7 +696,7 @@ def llvm_label(label: LLVMValue) -> None:
             f"{LLVMValueType.LABEL}", f"{label.value_type}", "llvm.py:llvm_label"
         )
 
-    LLVM_OUT_FILE.writelines([TAB, f"{PURPLE_LABEL_PREFIX}{label.int_value}:", NEWLINE])
+    LLVM_OUT_FILE.writelines([NEWLINE, TAB, f"{PURPLE_LABEL_PREFIX}{label.int_value}:", NEWLINE])
 
 
 def llvm_jump(label: LLVMValue) -> None:
@@ -970,7 +970,7 @@ def llvm_call_function(arguments: List[LLVMValue], function_name: str) -> LLVMVa
         )
 
     arguments = [
-        llvm_ensure_registers_loaded([arg], expected_arg.pointer_depth)[0]
+        llvm_int_resize(llvm_ensure_registers_loaded([arg], expected_arg.pointer_depth)[0], expected_arg.ntype)
         for arg, expected_arg in zip(
             arguments, entry.identifier_type.contents.arguments.values()
         )
@@ -1014,7 +1014,7 @@ def llvm_call_function(arguments: List[LLVMValue], function_name: str) -> LLVMVa
     return out
 
 
-def llvm_get_address(identifier: str, offset: int = 0) -> LLVMValue:
+def llvm_get_address(identifier: str) -> LLVMValue:
     """Store the address of an identifier in a virtual register
 
     Args:
@@ -1046,24 +1046,13 @@ def llvm_get_address(identifier: str, offset: int = 0) -> LLVMValue:
 
     lv.pointer_depth -= 1
 
-    if ste.latest_llvmvalue.is_num:
-        LLVM_OUT_FILE.writelines(
-            [
-                TAB,
-                f"%{lv.register_name} = getelementptr inbounds {lv.number_type}{lv.references}, ",
-                f"{ste.latest_llvmvalue.llvm_repr}",
-            ]
-        )
-    else:
-        # Getting element from array
-        LLVM_OUT_FILE.writelines(
-            [
-                TAB,
-                # Get rid of 1 pointer from latest llvmvalue
-                f"%{lv.register_name} = getelementptr inbounds {ste.latest_llvmvalue.llvm_type[:-1]}, ",
-                f"{ste.latest_llvmvalue.llvm_repr}, i64 0, i64 {offset}",
-            ]
-        )
+    LLVM_OUT_FILE.writelines(
+        [
+            TAB,
+            f"%{lv.register_name} = getelementptr inbounds {lv.number_type}{lv.references}, ",
+            f"{ste.latest_llvmvalue.llvm_repr}",
+        ]
+    )
 
     LLVM_OUT_FILE.write(NEWLINE)
 
@@ -1088,8 +1077,6 @@ def llvm_dereference(value: LLVMValue) -> LLVMValue:
         value.pointer_depth - 1,
     )
 
-    print(value, out)
-
     LLVM_OUT_FILE.writelines(
         [
             TAB,
@@ -1099,3 +1086,36 @@ def llvm_dereference(value: LLVMValue) -> LLVMValue:
     )
 
     return out
+
+
+def llvm_array_access(array_name: str, offset: LLVMValue) -> LLVMValue:
+    ste = SYMBOL_TABLE_STACK[array_name]
+    if not ste:
+        raise EccoIdentifierError(f"Tried to access non-existent array \"{array_name}\"")
+
+    if type(ste.identifier_type.contents) != Array:
+        raise EccoFatalException("", "Non-array stored in array access node")
+    arr_type: Array = ste.identifier_type.contents
+
+    offset = llvm_int_resize(offset, NumberType.LONG)
+
+    lv = LLVMValue(
+        LLVMValueType.VIRTUAL_REGISTER,
+        get_next_local_virtual_register(),
+        arr_type.ntype,
+        arr_type.pointer_depth,
+        array_type=arr_type
+    )
+    
+    LLVM_OUT_FILE.writelines(
+        [
+            TAB,
+            f"%{lv.register_name} = getelementptr inbounds {lv.llvm_type}, ",
+            f"{ste.latest_llvmvalue.llvm_repr}, i64 0, {offset.llvm_repr}", NEWLINE,
+        ]
+    )
+
+    lv.pointer_depth += 1
+
+    # return llvm_dereference(lv)
+    return lv

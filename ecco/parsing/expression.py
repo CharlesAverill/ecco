@@ -102,7 +102,7 @@ def prefix_operator_passthrough() -> ASTNode:
         GLOBAL_SCANNER.scan()
         out = prefix_operator_passthrough()
 
-        if out.type not in [TokenType.IDENTIFIER, TokenType.DEREFERENCE]:
+        if out.type not in [TokenType.IDENTIFIER, TokenType.DEREFERENCE, TokenType.AMPERSAND]:
             raise EccoSyntaxError(
                 "Dereference operators must be succeeded by dereference operators or variable names"
             )
@@ -153,17 +153,13 @@ def function_call_expression(function_name: str) -> ASTNode:
 
 
 def array_access_expression(array_ste: SymbolTableEntry) -> ASTNode:
-    left = ASTNode(Token(TokenType.AMPERSAND, array_ste.identifier_name))
-
     match_token(TokenType.LEFT_BRACKET)
 
-    right = parse_binary_expression()
+    child = parse_binary_expression()
 
     match_token(TokenType.RIGHT_BRACKET)
 
-    return ASTNode(
-        Token(TokenType.DEREFERENCE, array_ste.identifier_name), right, None, left
-    )
+    return ASTNode(Token(TokenType.ARRAY_ACCESS, array_ste.identifier_name), child)
 
 
 def error_check_precedence(node_type: TokenType) -> int:

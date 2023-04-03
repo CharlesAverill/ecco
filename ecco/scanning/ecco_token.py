@@ -63,6 +63,7 @@ class TokenType(Enum):
     LEFT_BRACKET = "["
     RIGHT_BRACKET = "]"
     COMMA = ","
+    ARRAY_ACCESS = "%array access"
 
     def is_type(self):
         return int(TokenType.VOID) <= int(self) <= int(TokenType.LONG)

@@ -208,6 +208,7 @@ def ast_to_llvm(
         llvm_dereference,
         llvm_store_dereference,
         llvm_store_local,
+        llvm_array_access
     )
 
     from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE, SYMBOL_TABLE_STACK
@@ -310,6 +311,9 @@ def ast_to_llvm(
         elif root.right.type == TokenType.DEREFERENCE:
             llvm_store_dereference(right_vr, left_vr)
             return left_vr
+        elif root.right.type == TokenType.ARRAY_ACCESS:
+            llvm_store_local(right_vr, left_vr)
+            return left_vr
 
         raise EccoInternalTypeError(
             "Identifier or Dereference token",
@@ -348,6 +352,9 @@ def ast_to_llvm(
             return llvm_dereference(llvm_dereference(left_vr))
         else:
             return left_vr
+    # Array access
+    elif root.type == TokenType.ARRAY_ACCESS:
+        return llvm_array_access(str(root.token.value), left_vr)
     # Print statement
     elif root.type == TokenType.PRINT:
         llvm_print_int(left_vr)

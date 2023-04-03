@@ -1,16 +1,15 @@
 int main() {
-    char a[25];
+    int a[10];
     int i;
     int x;
 
-    for(i = 0; i < 25; i = i + 1) {
+    for(i = 0; i < 10; i = i + 1) {
         a[i] = i;
-        x = a[i];
 
-        if (i < 15) {
-            printint(x);
-        }
+        printint(a[i]);
+        printint(i);
     }
 
-    printint(a[24]);
+    printint(a[8] = 5);
+    printint(a[8]);
 }
