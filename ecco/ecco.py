@@ -28,14 +28,16 @@ def main():
     # We will do some imports here to avoid "partially initialized" errors
     from .generation import generate_llvm
 
-    SYMBOL_TABLE_STACK.GST["printint"] = SymbolTableEntry("printint", 
-        Type(TokenType.FUNCTION, Function(
-            Number(NumberType.INT, 0), OrderedDict({
-                "value": Number(NumberType.INT, 0)
-            })
-        ))
+    SYMBOL_TABLE_STACK.GST["printint"] = SymbolTableEntry(
+        "printint",
+        Type(
+            TokenType.FUNCTION,
+            Function(
+                Number(NumberType.INT, 0),
+                OrderedDict({"value": Number(NumberType.INT, 0)}),
+            ),
+        ),
     )
-    
 
     # SYMBOL_TABLE_STACK = SymbolTableStack()
     # GLOBAL_SYMBOL_TABLE = SYMBOL_TABLE_STACK.GST

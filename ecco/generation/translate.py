@@ -11,6 +11,7 @@ from ..utils import (
 )
 from .llvmstackentry import LLVMStackEntry
 from .llvmvalue import LLVMValue, LLVMValueType
+from .types import Array
 import tempfile
 
 LLVM_OUT_FILE: TextIO
@@ -166,14 +167,16 @@ def while_ast_to_llvm(root: ASTNode) -> LLVMValue:
 
 
 def ast_to_llvm(
-    root: Optional[ASTNode], label: LLVMValue, parent_operation: TokenType
+    root: Optional[ASTNode],
+    value_from_left_child: LLVMValue,
+    parent_operation: TokenType,
 ) -> LLVMValue:
     """Function to traverse an AST and generate LLVM code for it
 
     Args:
         root (ASTNode): Root ASTNode of program to generate
-        label (LLVMValue): Label value passed from left-branch traversals to the
-                            right branch
+        value_from_left_child (LLVMValue): Value passed from left-branch traversals to the
+                                           right branch
         parent_operation (TokenType): TokenType of parent of root
 
     Raises:
@@ -237,7 +240,7 @@ def ast_to_llvm(
     if root.left:
         left_vr = ast_to_llvm(root.left, LLVMValue(LLVMValueType.NONE), root.type)
     if root.right:
-        right_vr = ast_to_llvm(root.right, LLVMValue(LLVMValueType.NONE), root.type)
+        right_vr = ast_to_llvm(root.right, left_vr, root.type)
 
     # Binary arithmetic
     if root.token.is_binary_arithmetic():
@@ -245,11 +248,16 @@ def ast_to_llvm(
         return llvm_binary_arithmetic(root.token, left_vr, right_vr)
     # Comparison operators
     elif root.token.is_comparison_operator():
-        left_vr, right_vr = llvm_ensure_registers_loaded([left_vr, right_vr], 
-                                                         min(left_vr.pointer_depth, right_vr.pointer_depth) - 
-                                                            1 if left_vr.is_likely_local_var else 0)
+        left_vr, right_vr = llvm_ensure_registers_loaded(
+            [left_vr, right_vr],
+            min(left_vr.pointer_depth, right_vr.pointer_depth) - 1
+            if left_vr.is_likely_local_var
+            else 0,
+        )
         if parent_operation in [TokenType.IF, TokenType.WHILE]:
-            return llvm_compare_jump(root.token, left_vr, right_vr, label)
+            return llvm_compare_jump(
+                root.token, left_vr, right_vr, value_from_left_child
+            )
         else:
             return llvm_comparison(root.token, left_vr, right_vr)
     # Terminal Node
@@ -289,17 +297,16 @@ def ast_to_llvm(
             raise EccoInternalTypeError(
                 "two children", "nothing", "translate.py:ast_to_llvm"
             )
-        
+
         if root.right.type == TokenType.IDENTIFIER:
             if GLOBAL_SYMBOL_TABLE[str(root.right.token.value)]:
                 llvm_store_global(str(root.right.token.value), left_vr)
                 return left_vr
             else:
-                llvm_store_local(
-                    SYMBOL_TABLE_STACK[str(root.right.token.value)].latest_llvmvalue, 
-                    left_vr
-                )
-                return left_vr
+                ste = SYMBOL_TABLE_STACK[str(root.right.token.value)]
+                if ste:
+                    llvm_store_local(ste.latest_llvmvalue, left_vr)
+                    return left_vr
         elif root.right.type == TokenType.DEREFERENCE:
             llvm_store_dereference(right_vr, left_vr)
             return left_vr
@@ -335,6 +342,9 @@ def ast_to_llvm(
         if root.is_rvalue:
             # Quick fix: local variables are now 1 pointer deeper than normal
             # and only they can be dereferenced, so just do an extra deref every time
+            ste = SYMBOL_TABLE_STACK[str(root.token.value)]
+            if ste and type(ste.identifier_type.contents) == Array:
+                return left_vr
             return llvm_dereference(llvm_dereference(left_vr))
         else:
             return left_vr

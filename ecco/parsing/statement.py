@@ -45,7 +45,9 @@ def match_type() -> Number:
     """
     from ..ecco import GLOBAL_SCANNER
 
-    ttype = match_token([TokenType.VOID, TokenType.INT, TokenType.CHAR])[1]
+    ttype = match_token(
+        [TokenType.VOID, TokenType.INT, TokenType.CHAR, TokenType.LONG]
+    )[1]
 
     pointer_depth = 0
     while GLOBAL_SCANNER.current_token.type == TokenType.STAR:

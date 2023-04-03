@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Union
 
 from ..utils.ecco_logging import EccoInternalTypeError
-from .types import NumberType
+from .types import NumberType, Array
 
 
 class LLVMValueType(Enum):
@@ -29,6 +29,7 @@ class LLVMValue:
         nt: NumberType = NumberType.INT,
         pointer_depth: int = 0,
         just_loaded: str = "",
+        array_type: Array = None,
     ):
         """Stores data about various kinds of LLVM Values
 
@@ -45,6 +46,13 @@ class LLVMValue:
         self.number_type: NumberType = nt
         self.pointer_depth: int = pointer_depth
         self.just_loaded: str = just_loaded
+
+        self.is_num: bool
+        if array_type:
+            self.is_num = False
+            self.array_length: int = array_type.length
+        else:
+            self.is_num = True
 
         if self.value_type in [
             LLVMValueType.VIRTUAL_REGISTER,
@@ -69,7 +77,7 @@ class LLVMValue:
     @property
     def is_register(self) -> bool:
         return self.value_type == LLVMValueType.VIRTUAL_REGISTER
-    
+
     @property
     def is_likely_local_var(self) -> bool:
         return self.is_register and self.str_value != ""
@@ -78,13 +86,28 @@ class LLVMValue:
     def references(self) -> str:
         return "*" * self.pointer_depth
 
+    @property
+    def llvm_type(self) -> str:
+        if self.is_num:
+            return f"{self.number_type}{self.references}"
+        else:
+            # We are implicitly not supporting arrays of pointers by excluding
+            # {something.references} here. We'll need to do a better unification of
+            # the LLVMValue and Number classes
+            return f"[{self.array_length} x {self.number_type}]{self.references}"
+
+    @property
+    def llvm_display_value(self) -> str:
+        return f"{'%' if self.is_register else ''}{self.register_name}"
+
+    @property
+    def llvm_repr(self) -> str:
+        return self.llvm_type + " " + self.llvm_display_value
+
     def __repr__(self) -> str:
         append: str = ""
-        if self.value_type in [LLVMValueType.VIRTUAL_REGISTER, LLVMValueType.CONSTANT]:
-            append = f": {'%' if self.value_type == LLVMValueType.VIRTUAL_REGISTER else ''}{self.register_name}"
+        if self.value_type == LLVMValueType.CONSTANT:
+            append = f": {self.int_value}"
         if self.just_loaded:
             append += f" (from {self.just_loaded})"
-        return (
-            f"LLVMValue ({self.value_type} {self.number_type}{self.references})"
-            + append
-        )
+        return f"LLVMValue ({self.llvm_repr})" + append

@@ -181,3 +181,10 @@ class EccoEOFMissingSemicolonError(EccoFatalException):
         super().__init__(
             "SYNTAX ERROR", "Encountered unexpected EOF, did you forget a semicolon?"
         )
+
+
+class EccoArrayError(EccoFatalException):
+    return_code = 8
+
+    def __init__(self, message: str):
+        super().__init__("ARRAY ERROR", message)

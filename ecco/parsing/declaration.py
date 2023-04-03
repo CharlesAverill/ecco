@@ -1,9 +1,9 @@
 from ..scanning import TokenType, Token
-from ..utils import EccoInternalTypeError, EccoIdentifierError
+from ..utils import EccoInternalTypeError, EccoIdentifierError, EccoArrayError
 from ..generation.symboltable import SymbolTableEntry
-from ..generation.types import Type, Function, Number
+from ..generation.types import Type, Function, Number, Array
 from .ecco_ast import ASTNode
-from typing import Union
+from typing import Union, Optional
 from collections import OrderedDict
 
 
@@ -78,7 +78,6 @@ def declaration_statement() -> ASTNode:
     num = match_type()
 
     ident = match_token(TokenType.IDENTIFIER)[0]
-
     if type(ident) != str:
         raise EccoInternalTypeError(
             "str",
@@ -86,14 +85,30 @@ def declaration_statement() -> ASTNode:
             "ecco/parsing/declaration.py:declaration_statement",
         )
 
+    arr_type: Optional[Array] = None
+    if GLOBAL_SCANNER.current_token.type == TokenType.LEFT_BRACKET:
+        match_token(TokenType.LEFT_BRACKET)
+
+        if GLOBAL_SCANNER.current_token.type == TokenType.INTEGER_LITERAL:
+            arr_type = Array(num, int(GLOBAL_SCANNER.current_token.value))
+            match_token(TokenType.INTEGER_LITERAL)
+        else:
+            # We will add another case for something like arr[] = {0, 1, 2};
+            # when we add initializer lists
+            raise EccoArrayError("Arrays must be declared with a constant size")
+
+        match_token(TokenType.RIGHT_BRACKET)
+
+    ident_type: Union[Array, Number] = arr_type if arr_type else num
+
     # num.pointer_depth += 1
     SYMBOL_TABLE_STACK.LST[ident] = SymbolTableEntry(
-        ident, Type(num.ntype.to_tokentype(), num)
+        ident, Type(num.ntype.to_tokentype(), ident_type)
     )
 
     ste = SYMBOL_TABLE_STACK.LST[ident]
-    if ste and type(ste.identifier_type.contents) == Number:
-        return ASTNode(Token(TokenType.VAR_DECL, ident), tree_type=num)
+    if ste and type(ste.identifier_type.contents) in [Number, Array]:
+        return ASTNode(Token(TokenType.VAR_DECL, ident), tree_type=ident_type)
         # llvm_declare_global(ident, 0, num)
         # ste.latest_llvmvalue = llvm_declare_local(ident, 0, num)
     else:

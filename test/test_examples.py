@@ -108,6 +108,25 @@ def test_dereference_assignment():
 50
 50
 7""")
+            
+
+def test_arrays():
+    _tester("test_arrays", """0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+24""")
 
 
 def test_empty_prog():

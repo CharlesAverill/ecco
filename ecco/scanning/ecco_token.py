@@ -36,6 +36,7 @@ class TokenType(Enum):
     VOID = "void"
     INT = "int"
     CHAR = "char"
+    LONG = "long"
 
     # Assignment
     ASSIGN = "="
@@ -59,10 +60,12 @@ class TokenType(Enum):
     RIGHT_BRACE = "}"
     LEFT_PARENTHESIS = "("
     RIGHT_PARENTHESIS = ")"
+    LEFT_BRACKET = "["
+    RIGHT_BRACKET = "]"
     COMMA = ","
 
     def is_type(self):
-        return int(TokenType.VOID) <= int(self) <= int(TokenType.CHAR)
+        return int(TokenType.VOID) <= int(self) <= int(TokenType.LONG)
 
     def is_literal(self):
         return (
@@ -115,7 +118,9 @@ class TokenType(Enum):
 
 class Token:
     def __init__(
-        self, _type: TokenType = TokenType.UNKNOWN_TOKEN, _value: Union[int, str] = 0
+        self,
+        _type: TokenType = TokenType.UNKNOWN_TOKEN,
+        _values: Union[int, str, List[Union[int, str]]] = [0],
     ):
         """Stores Token data
 
@@ -124,7 +129,14 @@ class Token:
             _value (int, optional): Value of Token to instantiate. Defaults to 0.
         """
         self.type: TokenType = _type
-        self.value: Union[int, str] = _value
+
+        # Getting around the linter
+        def to_list(x):
+            if type(x) != list:
+                return [x]
+            return x
+
+        self.values = to_list(_values)
 
     def is_binary_arithmetic(self) -> bool:
         return int(TokenType.PLUS) <= int(self.type) <= int(TokenType.SLASH)
@@ -138,6 +150,14 @@ class Token:
             <= int(self.type)
             <= int(TokenType.INTEGER_LITERAL)
         )
+
+    @property
+    def value(self) -> Union[int, str]:
+        return self.values[0]
+
+    @value.setter
+    def value(self, v: Union[int, str]) -> None:
+        self.values[0] = v
 
     def __repr__(self):
         return f"Token:\n\tTYPE = [{str(self.type)}] ({int(self.type)})" + (

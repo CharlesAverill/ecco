@@ -1,7 +1,9 @@
 from enum import Enum
 from ..scanning.ecco_token import TokenType
 from typing import Union, OrderedDict
-from ..utils import EccoInternalTypeError
+from ..utils import EccoInternalTypeError, EccoArrayError
+
+from typing import List
 
 
 class NumberType(Enum):
@@ -17,7 +19,7 @@ class NumberType(Enum):
     def byte_width(self) -> int:
         if self == NumberType.VOID:
             return 0
-        return max(1, int(self.value[1:]) // 4)
+        return max(1, int(self.value[1:]) // 8)
 
     @property
     def max_val(self) -> int:
@@ -42,6 +44,8 @@ class NumberType(Enum):
             return NumberType.INT
         elif t == TokenType.CHAR:
             return NumberType.CHAR
+        elif t == TokenType.LONG:
+            return NumberType.LONG
         elif t == TokenType.VOID:
             return NumberType.VOID
 
@@ -78,6 +82,47 @@ class Number:
         return f"{self.ntype}{self.references}"
 
 
+class Array:
+    def __init__(
+        self, num: Number, length: int, contents: List[float] = [], dimension: int = 1
+    ):
+        self.num = num
+
+        # I would like to have this be length <= 0, but C compilers let users
+        # define length-0 arrays. That's ridiculous! But I'll stick with the "standard"
+        if length < 0:
+            raise EccoArrayError("Arrays must have a non-negative length")
+        self.length = length
+
+        if not contents:
+            contents = [0] * length
+        elif len(contents) != length:
+            raise EccoArrayError(
+                "Length of initializer list does not match declared size"
+            )
+        self.contents = contents
+
+        if dimension != 1:
+            raise EccoArrayError("Only 1D arrays are supported for now!")
+        self.dimension = dimension
+
+    @property
+    def ntype(self) -> NumberType:
+        return self.num.ntype
+
+    @property
+    def pointer_depth(self) -> int:
+        return self.num.pointer_depth
+
+    @pointer_depth.setter
+    def pointer_depth(self, i: int) -> None:
+        self.num.pointer_depth = i
+
+    @property
+    def llvm_repr(self) -> str:
+        return f"[{self.length} x {self.num.llvm_repr}]"
+
+
 class Function:
     def __init__(self, rtype: Number, arguments: OrderedDict[str, Number]):
         self.return_type: Number = rtype
@@ -92,9 +137,9 @@ class Function:
 
 
 class Type:
-    def __init__(self, ttype: TokenType, value: Union[Number, Function]) -> None:
+    def __init__(self, ttype: TokenType, value: Union[Number, Function, Array]) -> None:
         self.ttype: TokenType = ttype
-        self.contents: Union[Number, Function] = value
+        self.contents: Union[Number, Function, Array] = value
 
     @property
     def type(self):
@@ -109,4 +154,6 @@ class Type:
                 return str(self.contents.return_type.ntype)
             else:
                 return "void"
+        elif type(self.contents) == Array:
+            return str(self.contents.ntype)
         return "brokentype"

@@ -5,15 +5,13 @@ from ..utils import (
     EccoSyntaxError,
     EccoEOFMissingSemicolonError,
     EccoIdentifierError,
-    EccoInternalTypeError,
 )
 from .ecco_ast import ASTNode
 from typing import Optional
 from ..generation.symboltable import SymbolTableEntry
+from ..generation.types import Array, Function
 from .statement import match_token
 from .optimization import optimize_AST
-
-from ..generation.types import Function
 
 OPERATOR_PRECEDENCE: Dict[TokenType, int] = {
     TokenType.PLUS: 12,
@@ -52,12 +50,15 @@ def parse_terminal_node() -> ASTNode:
         ]
         if not ident:
             raise EccoIdentifierError(
-                f'Undeclared variable "{GLOBAL_SCANNER.current_token.value}"'
+                f'Undeclared identifier "{GLOBAL_SCANNER.current_token.value}"'
             )
 
         if type(ident.identifier_type.contents) == Function:
             match_token(TokenType.IDENTIFIER)
             return function_call_expression(ident.identifier_name)
+        elif type(ident.identifier_type.contents) == Array:
+            match_token(TokenType.IDENTIFIER)
+            return array_access_expression(ident)
         else:
             out = ASTNode(
                 Token(TokenType.IDENTIFIER, ident.identifier_name), None, None, None
@@ -117,25 +118,13 @@ def prefix_operator_passthrough() -> ASTNode:
     return out
 
 
-def function_call_expression(function_name_override: str = "") -> ASTNode:
-    from ..ecco import GLOBAL_SYMBOL_TABLE, GLOBAL_SCANNER
+def function_call_expression(function_name: str) -> ASTNode:
+    from ..ecco import GLOBAL_SYMBOL_TABLE
 
-    # By the time we're executing code on the inside of function_call_expression,
-    # we've already scanned in an identifier
-    if type(GLOBAL_SCANNER.current_token.value) != str:
-        if not function_name_override:
-            raise EccoInternalTypeError(
-                "str",
-                str(type(GLOBAL_SCANNER.current_token.value)),
-                "expression.py:function_call_expression",
-            )
-    elif not function_name_override:
-        function_name_override = GLOBAL_SCANNER.current_token.value
-
-    ident: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[function_name_override]
+    ident: Optional[SymbolTableEntry] = GLOBAL_SYMBOL_TABLE[function_name]
     if not ident:
         raise EccoIdentifierError(
-            f'Tried to call undeclared function "{function_name_override}"'
+            f'Tried to call undeclared function "{function_name}"'
         )
     elif type(ident.identifier_type.contents) != Function:
         raise EccoIdentifierError(
@@ -161,6 +150,20 @@ def function_call_expression(function_name_override: str = "") -> ASTNode:
     )
 
     return out
+
+
+def array_access_expression(array_ste: SymbolTableEntry) -> ASTNode:
+    left = ASTNode(Token(TokenType.AMPERSAND, array_ste.identifier_name))
+
+    match_token(TokenType.LEFT_BRACKET)
+
+    right = parse_binary_expression()
+
+    match_token(TokenType.RIGHT_BRACKET)
+
+    return ASTNode(
+        Token(TokenType.DEREFERENCE, array_ste.identifier_name), right, None, left
+    )
 
 
 def error_check_precedence(node_type: TokenType) -> int:
@@ -194,6 +197,13 @@ def _parse_binary_expression_recursive(previous_token_precedence: int) -> ASTNod
     """
     from ..ecco import GLOBAL_SCANNER
 
+    expr_terminators = [
+        TokenType.SEMICOLON,
+        TokenType.RIGHT_PARENTHESIS,
+        TokenType.RIGHT_BRACKET,
+        TokenType.COMMA,
+    ]
+
     left: ASTNode
     right: ASTNode
     node_type: TokenType
@@ -204,7 +214,7 @@ def _parse_binary_expression_recursive(previous_token_precedence: int) -> ASTNod
 
     # Reached the end of a statement
     node_type = GLOBAL_SCANNER.current_token.type
-    if node_type in [TokenType.SEMICOLON, TokenType.RIGHT_PARENTHESIS, TokenType.COMMA]:
+    if node_type in expr_terminators:
         left.is_rvalue = True
         return left
     elif node_type == TokenType.EOF:
@@ -237,11 +247,7 @@ def _parse_binary_expression_recursive(previous_token_precedence: int) -> ASTNod
 
         # Update node_type and check for end of statement
         node_type = GLOBAL_SCANNER.current_token.type
-        if node_type in [
-            TokenType.SEMICOLON,
-            TokenType.RIGHT_PARENTHESIS,
-            TokenType.COMMA,
-        ]:
+        if node_type in expr_terminators:
             break
         elif node_type == TokenType.EOF:
             raise EccoEOFMissingSemicolonError()
