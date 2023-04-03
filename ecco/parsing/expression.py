@@ -62,6 +62,13 @@ def parse_terminal_node() -> ASTNode:
             out = ASTNode(
                 Token(TokenType.IDENTIFIER, ident.identifier_name), None, None, None
             )
+    elif GLOBAL_SCANNER.current_token.type == TokenType.LEFT_PARENTHESIS:
+        match_token(TokenType.LEFT_PARENTHESIS)
+        out = parse_binary_expression()
+        match_token(TokenType.RIGHT_PARENTHESIS)
+
+        # We don't want GLOBAL_SCANNER.scan() to go through
+        return out
     elif GLOBAL_SCANNER.current_token.type == TokenType.EOF:
         raise EccoEOFMissingSemicolonError()
     else:
