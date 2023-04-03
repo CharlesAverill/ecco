@@ -4,10 +4,11 @@ int main() {
     int x;
 
     for(i = 0; i < 10; i = i + 1) {
-        a[i] = i;
+        a[i] = 2 * i;
+        x = a[i];
 
-        printint(a[i]);
         printint(i);
+        printint(x);
     }
 
     printint(a[8] = 5);
