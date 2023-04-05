@@ -11,6 +11,6 @@ int main() {
         printint(x);
     }
 
-    printint(a[8] = 5);
+    printint(a[8] = 2 * (3 + 5));
     printint(a[8]);
 }

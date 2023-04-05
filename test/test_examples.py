@@ -131,8 +131,8 @@ def test_arrays():
 16
 9
 18
-5
-5""")
+16
+16""")
 
 
 def test_empty_prog():
