@@ -198,7 +198,7 @@ def llvm_add(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = add nsw {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.register_name}, {'%' if right_vr.is_register else ''}{right_vr.register_name}",
+            f"%{out_vr} = add nsw {left_vr.number_type} {left_vr.llvm_display_value}, {right_vr.llvm_display_value}",
             NEWLINE,
         ]
     )
@@ -223,7 +223,7 @@ def llvm_sub(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = sub nsw {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.register_name}, {'%' if right_vr.is_register else ''}{right_vr.register_name}",
+            f"%{out_vr} = sub nsw {left_vr.number_type} {left_vr.llvm_display_value}, {right_vr.llvm_display_value}",
             NEWLINE,
         ]
     )
@@ -248,7 +248,7 @@ def llvm_mul(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = mul nsw {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.register_name}, {'%' if right_vr.is_register else ''}{right_vr.register_name}",
+            f"%{out_vr} = mul nsw {left_vr.number_type} {left_vr.llvm_display_value}, {right_vr.llvm_display_value}",
             NEWLINE,
         ]
     )
@@ -273,7 +273,7 @@ def llvm_div(left_vr: LLVMValue, right_vr: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr} = udiv {left_vr.number_type} {'%' if left_vr.is_register else ''}{left_vr.register_name}, {'%' if right_vr.is_register else ''}{right_vr.register_name}",
+            f"%{out_vr} = udiv {left_vr.number_type} {left_vr.llvm_display_value}, {right_vr.llvm_display_value}",
             NEWLINE,
         ]
     )
@@ -378,7 +378,7 @@ def llvm_comparison(token: Token, left_vr: LLVMValue, right_vr: LLVMValue) -> LL
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out_vr.register_name} = icmp {operator} {left_vr.llvm_type} {left_vr.llvm_display_value}, {right_vr.llvm_display_value}",
+            f"%{out_vr.register_name} = icmp {operator} {left_vr.llvm_repr}, {right_vr.llvm_display_value}",
             NEWLINE,
         ]
     )
@@ -587,7 +587,7 @@ def llvm_store_local(
                 "; llvm_store_local",
                 NEWLINE,
                 TAB,
-                f"store {rvalue.number_type}{rvalue.references} {'%' if rvalue.is_register else ''}{rvalue.register_name}, {lvar.number_type}{lvar.references} %{lvar.register_name}",
+                f"store {rvalue.llvm_repr}, {lvar.number_type}{lvar.references} %{lvar.register_name}",
                 NEWLINE,
             ]
         )
@@ -618,7 +618,7 @@ def llvm_store_dereference(destination: LLVMValue, value: LLVMValue):
                 "; store_dereference",
                 NEWLINE,
                 TAB,
-                f"store {value.number_type}{value.references} {'%' if value.is_register else ''}{value.register_name}, {destination.number_type}{destination.references} %{destination.register_name}",
+                f"store {value.llvm_repr}, {destination.llvm_type} %{destination.register_name}",
                 NEWLINE,
             ]
         )
@@ -626,7 +626,7 @@ def llvm_store_dereference(destination: LLVMValue, value: LLVMValue):
         LLVM_OUT_FILE.writelines(
             [
                 TAB,
-                f"store {value.number_type}{value.references} {'%' if value.is_register else ''}{value.register_name}, {destination.number_type}{destination.references}* @{destination.just_loaded}",
+                f"store {value.llvm_repr}, {destination.llvm_type}* @{destination.just_loaded}",
                 NEWLINE,
             ]
         )
@@ -661,17 +661,7 @@ def llvm_print_int(reg: LLVMValue) -> None:
     reg = llvm_ensure_registers_loaded([reg], 0)[0]  # reg.pointer_depth
     reg = llvm_int_resize(reg, NumberType.INT)
 
-    # get_next_local_virtual_register()
-
     llvm_call_function([reg], "printint")
-
-    # LLVM_OUT_FILE.writelines(
-    #     [
-    #         TAB,
-    #         f"call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @print_int_fstring , i32 0, i32 0), {reg.number_type}{reg.references} {'%' if reg.is_register else ''}{reg.register_name})",
-    #         NEWLINE,
-    #     ]
-    # )
 
 
 PURPLE_LABEL_PREFIX: str = "L"
@@ -927,7 +917,7 @@ def llvm_return(return_value: LLVMValue, function_name: str) -> None:
         [
             TAB,
             f"ret {return_value.number_type} ",
-            f"{'%' if return_value.is_register else ''}{return_value.register_name}"
+            f"{return_value.llvm_display_value}"
             if return_value.number_type != NumberType.VOID
             else "",
             NEWLINE,
@@ -997,7 +987,7 @@ def llvm_call_function(arguments: List[LLVMValue], function_name: str) -> LLVMVa
             # Arguments
             ", ".join(
                 [
-                    f"{value.number_type}{value.references} {'%' if value.is_register else ''}{value.register_name}"
+                    f"{value.llvm_type} {value.llvm_display_value}"
                     for value in arguments
                 ]
             ),
@@ -1044,7 +1034,7 @@ def llvm_get_address(identifier: str) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{lv.register_name} = getelementptr inbounds {lv.number_type}{lv.references}, ",
+            f"%{lv.register_name} = getelementptr inbounds {lv.llvm_type}, ",
             f"{ste.latest_llvmvalue.llvm_repr}",
         ]
     )
@@ -1075,7 +1065,7 @@ def llvm_dereference(value: LLVMValue) -> LLVMValue:
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{out.register_name} = load {out.number_type}{out.references}, {value.number_type}{value.references} %{value.register_name}",
+            f"%{out.register_name} = load {out.llvm_type}, {value.llvm_type} %{value.register_name}",
             NEWLINE,
         ]
     )
