@@ -354,11 +354,6 @@ def llvm_comparison(token: Token, left_vr: LLVMValue, right_vr: LLVMValue) -> LL
     """
     out_vr: LLVMValue
 
-    if left_vr.pointer_depth < right_vr.pointer_depth:
-        right_vr = llvm_ensure_registers_loaded([right_vr], left_vr.pointer_depth)[0]
-    elif right_vr.pointer_depth < left_vr.pointer_depth:
-        left_vr = llvm_ensure_registers_loaded([left_vr], right_vr.pointer_depth)[0]
-
     if int(left_vr.number_type) < int(right_vr.number_type):
         left_vr = llvm_int_resize(left_vr, right_vr.number_type)
     elif int(left_vr.number_type) > int(right_vr.number_type):
