@@ -3,12 +3,6 @@ int iterative_fact(int x) {
 	y = x - 1;
 
 	while (y > 0) {
-		// This has a bug!
-		// x was not operated on before the loop, 
-		// so our compiler will use the original %x
-		// In a future update we will fix this bug
-		// by manually allocating stack space for
-		// function arguments
 		x = x * y;
 		y = y - 1;
 	}
