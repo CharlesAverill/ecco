@@ -92,7 +92,9 @@ class HashTableSymbolTable(SymbolTableInterface):
             bool: If the symbol already existed in the table
         """
         if error_if_exists and self[identifier]:
-            raise EccoIdentifierError(f"Redefinition of existing variable {identifier}")
+            raise EccoIdentifierError(
+                f"Redefinition of existing identifier {identifier}"
+            )
 
         id_index = self.hash(identifier)
 

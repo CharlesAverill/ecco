@@ -1,0 +1,16 @@
+int test_func_prototype(int a, int b, int c);
+
+int main() {
+    printint(test_func_prototype(5, 10, 15));
+}
+
+int test_func_prototype(int x, int y, int z) {
+    return x + y + z;
+}
+
+// These should fail
+// int test_func_prototype(int x, long y, int z) { ... } (again)
+// int test_func_prototype(int x, long y, int z);
+// long test_func_prototype(int x, long y, int z) { ... }
+// int test_func_prototype(int x, long y) { ... }
+// int main() { ... }

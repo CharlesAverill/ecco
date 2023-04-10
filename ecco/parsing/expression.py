@@ -102,7 +102,11 @@ def prefix_operator_passthrough() -> ASTNode:
         GLOBAL_SCANNER.scan()
         out = prefix_operator_passthrough()
 
-        if out.type not in [TokenType.IDENTIFIER, TokenType.DEREFERENCE, TokenType.AMPERSAND]:
+        if out.type not in [
+            TokenType.IDENTIFIER,
+            TokenType.DEREFERENCE,
+            TokenType.AMPERSAND,
+        ]:
             raise EccoSyntaxError(
                 "Dereference operators must be succeeded by dereference operators or variable names"
             )

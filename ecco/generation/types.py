@@ -81,6 +81,19 @@ class Number:
     def llvm_repr(self) -> str:
         return f"{self.ntype}{self.references}"
 
+    def __repr__(self) -> str:
+        return f"Number [{self.ntype}{'*' * self.pointer_depth}] ({self.value})"
+
+    def __eq__(self, __value: object) -> bool:
+        if not isinstance(__value, Number):
+            return False
+
+        return (
+            __value.ntype == self.ntype
+            and __value.value == self.value
+            and __value.pointer_depth == self.pointer_depth
+        )
+
 
 class Array:
     def __init__(
@@ -124,9 +137,15 @@ class Array:
 
 
 class Function:
-    def __init__(self, rtype: Number, arguments: OrderedDict[str, Number]):
+    def __init__(
+        self,
+        rtype: Number,
+        arguments: OrderedDict[str, Number],
+        is_prototype: bool = False,
+    ):
         self.return_type: Number = rtype
         self.arguments = arguments
+        self.is_prototype = is_prototype
 
     @property
     def args_llvm_repr(self) -> str:

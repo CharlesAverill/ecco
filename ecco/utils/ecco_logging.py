@@ -71,8 +71,7 @@ class EccoFatalException(Exception):
             category_string (str): String describing what kind of fatal error occurred
             *args: Values to be concatenated to the error message, space-separated
         """
-        if args:
-            message = " - " + " ".join(args)
+        message = " - " + " ".join(args) if args else ""
 
         error_header = f'File "{ARGS.PROGRAM}", line {GLOBAL_SCANNER.line_number}:{GLOBAL_SCANNER.char_number}\n'
 

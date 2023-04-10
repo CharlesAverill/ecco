@@ -208,7 +208,7 @@ def ast_to_llvm(
         llvm_dereference,
         llvm_store_dereference,
         llvm_store_local,
-        llvm_array_access
+        llvm_array_access,
     )
 
     from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE, SYMBOL_TABLE_STACK

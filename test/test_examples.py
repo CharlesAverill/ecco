@@ -133,6 +133,10 @@ def test_arrays():
 18
 16
 16""")
+            
+
+def test_prototypes():
+    _tester("test_prototypes", "30")
 
 
 def test_empty_prog():

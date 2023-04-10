@@ -681,7 +681,9 @@ def llvm_label(label: LLVMValue) -> None:
             f"{LLVMValueType.LABEL}", f"{label.value_type}", "llvm.py:llvm_label"
         )
 
-    LLVM_OUT_FILE.writelines([NEWLINE, TAB, f"{PURPLE_LABEL_PREFIX}{label.int_value}:", NEWLINE])
+    LLVM_OUT_FILE.writelines(
+        [NEWLINE, TAB, f"{PURPLE_LABEL_PREFIX}{label.int_value}:", NEWLINE]
+    )
 
 
 def llvm_jump(label: LLVMValue) -> None:
@@ -955,7 +957,10 @@ def llvm_call_function(arguments: List[LLVMValue], function_name: str) -> LLVMVa
         )
 
     arguments = [
-        llvm_int_resize(llvm_ensure_registers_loaded([arg], expected_arg.pointer_depth)[0], expected_arg.ntype)
+        llvm_int_resize(
+            llvm_ensure_registers_loaded([arg], expected_arg.pointer_depth)[0],
+            expected_arg.ntype,
+        )
         for arg, expected_arg in zip(
             arguments, entry.identifier_type.contents.arguments.values()
         )
@@ -964,7 +969,7 @@ def llvm_call_function(arguments: List[LLVMValue], function_name: str) -> LLVMVa
     LLVM_OUT_FILE.write(TAB)
 
     call_type: str = "void"
-    if entry.identifier_type.contents.return_type != TokenType.VOID:
+    if entry.identifier_type.contents.return_type.ntype != NumberType.VOID:
         out = LLVMValue(
             LLVMValueType.VIRTUAL_REGISTER,
             get_next_local_virtual_register(),
@@ -986,10 +991,7 @@ def llvm_call_function(arguments: List[LLVMValue], function_name: str) -> LLVMVa
             f") @{function_name}(",
             # Arguments
             ", ".join(
-                [
-                    f"{value.llvm_type} {value.llvm_display_value}"
-                    for value in arguments
-                ]
+                [f"{value.llvm_type} {value.llvm_display_value}" for value in arguments]
             ),
             ")",
             NEWLINE,
@@ -1076,7 +1078,7 @@ def llvm_dereference(value: LLVMValue) -> LLVMValue:
 def llvm_array_access(array_name: str, offset: LLVMValue) -> LLVMValue:
     ste = SYMBOL_TABLE_STACK[array_name]
     if not ste:
-        raise EccoIdentifierError(f"Tried to access non-existent array \"{array_name}\"")
+        raise EccoIdentifierError(f'Tried to access non-existent array "{array_name}"')
 
     if type(ste.identifier_type.contents) != Array:
         raise EccoFatalException("", "Non-array stored in array access node")
@@ -1089,14 +1091,15 @@ def llvm_array_access(array_name: str, offset: LLVMValue) -> LLVMValue:
         get_next_local_virtual_register(),
         arr_type.ntype,
         arr_type.pointer_depth,
-        array_type=arr_type
+        array_type=arr_type,
     )
-    
+
     LLVM_OUT_FILE.writelines(
         [
             TAB,
             f"%{lv.register_name} = getelementptr inbounds {lv.llvm_type}, ",
-            f"{ste.latest_llvmvalue.llvm_repr}, i64 0, {offset.llvm_repr}", NEWLINE,
+            f"{ste.latest_llvmvalue.llvm_repr}, i64 0, {offset.llvm_repr}",
+            NEWLINE,
         ]
     )
 
