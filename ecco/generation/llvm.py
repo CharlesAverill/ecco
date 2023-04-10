@@ -5,7 +5,7 @@ from ..utils import EccoFatalException, EccoInternalTypeError, EccoIdentifierErr
 from .llvmstackentry import LLVMStackEntry
 from .symboltable import SymbolTableEntry
 from .llvmvalue import LLVMValue, LLVMValueType
-from .types import NumberType, Function, Number, Array
+from .types import NumberType, Function, Number, Array, Struct
 from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE, SYMBOL_TABLE_STACK
 from .translate import (
     LLVM_OUT_FILE,
@@ -888,6 +888,21 @@ def llvm_function_postamble(function_name: str) -> None:
                 NEWLINE,
             ]
         )
+
+    LLVM_OUT_FILE.writelines(["}", NEWLINE, NEWLINE])
+
+
+def llvm_struct_declaration(struct_name: str) -> None:
+    entry: SymbolTableEntry = SYMBOL_TABLE_STACK.GST[struct_name]
+    if not (entry and isinstance(entry.identifier_type.contents, Struct)):
+        raise EccoInternalTypeError("Struct", type(entry))
+    
+    LLVM_OUT_FILE.writelines([f"%{struct_name} = type {{", NEWLINE])
+
+    for i, (field_name, field_type) in enumerate(entry.identifier_type.contents.fields.items()):
+        LLVM_OUT_FILE.writelines([
+            TAB, field_type.llvm_repr, "," if i != len(entry.identifier_type.contents.fields) - 1 else '', TAB, f"; index {i} = {field_name}", NEWLINE
+        ])
 
     LLVM_OUT_FILE.writelines(["}", NEWLINE, NEWLINE])
 

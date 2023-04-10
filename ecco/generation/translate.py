@@ -209,6 +209,7 @@ def ast_to_llvm(
         llvm_store_dereference,
         llvm_store_local,
         llvm_array_access,
+        llvm_struct_declaration
     )
 
     from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE, SYMBOL_TABLE_STACK
@@ -236,6 +237,9 @@ def ast_to_llvm(
         llvm_stack_allocation(determine_binary_expression_stack_allocation(root))
         ast_to_llvm(root.left, LLVMValue(LLVMValueType.NONE), root.type)
         llvm_function_postamble(root.token.value)
+        return LLVMValue(LLVMValueType.NONE)
+    elif root.type == TokenType.STRUCT:
+        llvm_struct_declaration(str(root.token.value))
         return LLVMValue(LLVMValueType.NONE)
 
     if root.left:

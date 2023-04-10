@@ -193,7 +193,7 @@ def struct_declaration_statement() -> ASTNode:
     match_token(TokenType.RIGHT_BRACE)
     match_token(TokenType.SEMICOLON)
 
-    return ASTNode(Token(TokenType.UNKNOWN_TOKEN))
+    return ASTNode(Token(TokenType.STRUCT, identifier))
 
 
 def global_declaration() -> ASTNode:
