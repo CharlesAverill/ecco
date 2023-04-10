@@ -1,0 +1,9 @@
+struct test {
+    char c;
+    int i;
+    long l;
+};
+
+int main() {
+    
+}

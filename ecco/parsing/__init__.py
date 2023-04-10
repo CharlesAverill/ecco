@@ -1,7 +1,7 @@
 from .expression import parse_binary_expression
 from .ecco_ast import ASTNode
 from .statement import parse_statements
-from .declaration import declaration_statement, function_declaration_statement
+from .declaration import declaration_statement, function_declaration_statement, global_declaration
 from .optimization import optimize_AST
 
 __all__ = [
@@ -13,4 +13,5 @@ __all__ = [
     "declaration_statement",
     "function_declaration_statement",
     "optimize_AST",
+    "global_declaration"
 ]

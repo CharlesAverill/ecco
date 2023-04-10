@@ -379,7 +379,7 @@ def generate_llvm() -> None:
         llvm_preamble,
         llvm_postamble,
     )
-    from ..parsing import function_declaration_statement
+    from ..parsing import global_declaration
     from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
 
     llvm_preamble()
@@ -387,7 +387,7 @@ def generate_llvm() -> None:
     while GLOBAL_SCANNER.current_token.type != TokenType.EOF:
         translate_reinit()
         SYMBOL_TABLE_STACK.push()
-        root = function_declaration_statement()
+        root = global_declaration()
         ast_to_llvm(root, LLVMValue(LLVMValueType.NONE), root.type)
         SYMBOL_TABLE_STACK.pop()
 

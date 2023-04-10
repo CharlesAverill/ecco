@@ -48,6 +48,7 @@ class TokenType(Enum):
     PRINT = "print"
     WHILE = "while"
     RETURN = "return"
+    STRUCT = "struct"
 
     # Miscellaneous
     SEMICOLON = ";"

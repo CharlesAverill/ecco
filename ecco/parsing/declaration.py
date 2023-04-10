@@ -1,7 +1,7 @@
 from ..scanning import TokenType, Token
 from ..utils import EccoInternalTypeError, EccoIdentifierError, EccoArrayError
 from ..generation.symboltable import SymbolTableEntry
-from ..generation.types import Type, Function, Number, Array
+from ..generation.types import Type, Function, Number, Array, Struct
 from .ecco_ast import ASTNode
 from typing import Union, Optional, List
 from collections import OrderedDict
@@ -72,7 +72,7 @@ def function_declaration_statement() -> ASTNode:
                 f'Function argument "{arg_name}" was expected to have type {expected_arguments[len(arguments)]}, but got {arg_type}'
             )
 
-        arguments.update({arg_name: arg_type})
+        arguments[arg_name] = arg_type
 
         SYMBOL_TABLE_STACK.LST[arg_name] = SymbolTableEntry(
             arg_name,
@@ -167,3 +167,39 @@ def declaration_statement() -> ASTNode:
         # ste.latest_llvmvalue = llvm_declare_local(ident, 0, num)
     else:
         raise EccoIdentifierError("Failed to insert identifier into LST")
+
+
+def struct_declaration_statement() -> ASTNode:
+    from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
+    from .statement import match_token, match_type
+
+    match_token(TokenType.STRUCT)
+    identifier = str(match_token(TokenType.IDENTIFIER)[0])
+
+    match_token(TokenType.LEFT_BRACE)
+
+    arguments = OrderedDict()
+    while GLOBAL_SCANNER.current_token.type != TokenType.RIGHT_BRACE:
+        arg_type = match_type()
+        arg_name = str(match_token(TokenType.IDENTIFIER)[0])
+        match_token(TokenType.SEMICOLON)
+
+        arguments[arg_name] = arg_type
+
+    SYMBOL_TABLE_STACK.GST[identifier] = SymbolTableEntry(
+        identifier, Type(TokenType.STRUCT, Struct(arguments))
+    )
+
+    match_token(TokenType.RIGHT_BRACE)
+    match_token(TokenType.SEMICOLON)
+
+    return ASTNode(Token(TokenType.UNKNOWN_TOKEN))
+
+
+def global_declaration() -> ASTNode:
+    from ..ecco import GLOBAL_SCANNER
+
+    if GLOBAL_SCANNER.current_token.type == TokenType.STRUCT:
+        return struct_declaration_statement()
+    
+    return function_declaration_statement()
