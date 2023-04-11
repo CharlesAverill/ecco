@@ -17,7 +17,7 @@ def function_declaration_statement() -> ASTNode:
     from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
     from ..generation.llvmvalue import LLVMValue, LLVMValueType
 
-    return_type: Number = match_type()
+    return_type: Union[Number, Struct] = match_type()
     identifier: Union[str, int] = match_token(TokenType.IDENTIFIER)[0]
     if not isinstance(identifier, str):
         raise EccoInternalTypeError(
@@ -60,7 +60,7 @@ def function_declaration_statement() -> ASTNode:
         if len(arguments) and GLOBAL_SCANNER.current_token.type == TokenType.COMMA:
             match_token(TokenType.COMMA)
 
-        arg_type: Number = match_type()
+        arg_type: Union[Number, Struct] = match_type()
         arg_name: str = str(match_token(TokenType.IDENTIFIER)[0])
 
         if (
@@ -129,7 +129,7 @@ def declaration_statement() -> ASTNode:
     from .statement import match_token, match_type
     from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
 
-    num = match_type()
+    num: Union[Number, Struct] = match_type()
 
     ident = match_token(TokenType.IDENTIFIER)[0]
     if not isinstance(ident, str):
@@ -201,5 +201,5 @@ def global_declaration() -> ASTNode:
 
     if GLOBAL_SCANNER.current_token.type == TokenType.STRUCT:
         return struct_declaration_statement()
-    
+
     return function_declaration_statement()

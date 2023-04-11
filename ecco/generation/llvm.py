@@ -896,13 +896,22 @@ def llvm_struct_declaration(struct_name: str) -> None:
     entry: SymbolTableEntry = SYMBOL_TABLE_STACK.GST[struct_name]
     if not (entry and isinstance(entry.identifier_type.contents, Struct)):
         raise EccoInternalTypeError("Struct", type(entry))
-    
+
     LLVM_OUT_FILE.writelines([f"%{struct_name} = type {{", NEWLINE])
 
-    for i, (field_name, field_type) in enumerate(entry.identifier_type.contents.fields.items()):
-        LLVM_OUT_FILE.writelines([
-            TAB, field_type.llvm_repr, "," if i != len(entry.identifier_type.contents.fields) - 1 else '', TAB, f"; index {i} = {field_name}", NEWLINE
-        ])
+    for i, (field_name, field_type) in enumerate(
+        entry.identifier_type.contents.fields.items()
+    ):
+        LLVM_OUT_FILE.writelines(
+            [
+                TAB,
+                field_type.llvm_repr,
+                "," if i != len(entry.identifier_type.contents.fields) - 1 else "",
+                TAB,
+                f"; index {i} = {field_name}",
+                NEWLINE,
+            ]
+        )
 
     LLVM_OUT_FILE.writelines(["}", NEWLINE, NEWLINE])
 

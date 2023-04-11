@@ -28,6 +28,7 @@ class TokenType(Enum):
     # Pointers
     DEREFERENCE = "%dereference"
     AMPERSAND = "&"
+    ACCESS = "."
 
     # Literals
     INTEGER_LITERAL = "%integer literal"
@@ -37,6 +38,7 @@ class TokenType(Enum):
     INT = "int"
     CHAR = "char"
     LONG = "long"
+    STRUCT = "struct"
 
     # Assignment
     ASSIGN = "="
@@ -48,7 +50,6 @@ class TokenType(Enum):
     PRINT = "print"
     WHILE = "while"
     RETURN = "return"
-    STRUCT = "struct"
 
     # Miscellaneous
     SEMICOLON = ";"
@@ -67,7 +68,7 @@ class TokenType(Enum):
     ARRAY_ACCESS = "%array access"
 
     def is_type(self):
-        return int(TokenType.VOID) <= int(self) <= int(TokenType.LONG)
+        return int(TokenType.VOID) <= int(self) <= int(TokenType.STRUCT)
 
     def is_literal(self):
         return (

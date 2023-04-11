@@ -5,7 +5,7 @@ from typing import Optional, Union, List, Tuple
 from .declaration import declaration_statement
 from .assignment import assignment_statement
 from ..generation.symboltable import SymbolTableEntry
-from ..generation.types import Number, NumberType
+from ..generation.types import Number, NumberType, Struct
 
 
 def match_token(
@@ -37,22 +37,34 @@ def match_token(
     )
 
 
-def match_type() -> Number:
+def match_type() -> Union[Number, Struct]:
     """Match a type token
 
     Returns:
         Number: Number containing data type and pointer depth
     """
-    from ..ecco import GLOBAL_SCANNER
+    from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
 
     ttype = match_token(
-        [TokenType.VOID, TokenType.INT, TokenType.CHAR, TokenType.LONG]
+        [
+            TokenType.VOID,
+            TokenType.INT,
+            TokenType.CHAR,
+            TokenType.LONG,
+            TokenType.STRUCT,
+        ]
     )[1]
 
     pointer_depth = 0
     while GLOBAL_SCANNER.current_token.type == TokenType.STAR:
         match_token(TokenType.STAR)
         pointer_depth += 1
+
+    if ttype == TokenType.STRUCT:
+        struct_name = str(match_token(TokenType.IDENTIFIER)[0])
+        out = SYMBOL_TABLE_STACK.GST[struct_name].identifier_type.contents
+        if isinstance(out, Struct):
+            return out
 
     return Number(NumberType.from_tokentype(ttype), 0, pointer_depth)
 

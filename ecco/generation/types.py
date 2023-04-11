@@ -153,7 +153,7 @@ class Function:
             f"{self.arguments[argname].llvm_repr} %{argname}"
             for argname in self.arguments.keys()
         )
-    
+
 
 class Struct:
     def __init__(self, fields: OrderedDict[str, "Type"]):
@@ -161,7 +161,9 @@ class Struct:
 
 
 class Type:
-    def __init__(self, ttype: TokenType, value: Union[Number, Function, Array, Struct]) -> None:
+    def __init__(
+        self, ttype: TokenType, value: Union[Number, Function, Array, Struct]
+    ) -> None:
         self.ttype: TokenType = ttype
         self.contents: Union[Number, Function, Array, Struct] = value
 
