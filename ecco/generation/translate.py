@@ -229,7 +229,7 @@ def ast_to_llvm(
         ast_to_llvm(root.right, LLVMValue(LLVMValueType.NONE), root.type)
         return LLVMValue(LLVMValueType.NONE)
     elif root.type == TokenType.FUNCTION:
-        if type(root.token.value) != str:
+        if not isinstance(root.token.value, str):
             raise EccoInternalTypeError(
                 "str", str(type(root.token.value)), "translate.py:ast_to_llvm"
             )
@@ -330,7 +330,7 @@ def ast_to_llvm(
         )
     # Return statement
     elif root.type == TokenType.RETURN:
-        if type(root.token.value) != str:
+        if not isinstance(root.token.value, str):
             raise EccoInternalTypeError(
                 "str", str(type(root.token.value)), "translate.py:ast_to_llvm"
             )
@@ -355,7 +355,7 @@ def ast_to_llvm(
             # Quick fix: local variables are now 1 pointer deeper than normal
             # and only they can be dereferenced, so just do an extra deref every time
             ste = SYMBOL_TABLE_STACK[str(root.token.value)]
-            if ste and type(ste.identifier_type.contents) == Array:
+            if ste and isinstance(ste.identifier_type.contents, Array):
                 return left_vr
             return llvm_dereference(llvm_dereference(left_vr))
         else:

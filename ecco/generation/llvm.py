@@ -456,7 +456,7 @@ def llvm_declare_local(name: str, typ: Union[Number, Array, Struct]):
 
     out.pointer_depth += 1
 
-    if type(typ) == Number and typ.value != 0:
+    if isinstance(typ, Number) and typ.value != 0:
         llvm_store_local(
             out,
             LLVMValue(LLVMValueType.CONSTANT, typ.value, typ.ntype, typ.pointer_depth),
@@ -479,7 +479,7 @@ def llvm_load_global(name: str) -> LLVMValue:
     ste = SYMBOL_TABLE_STACK[name]
     if not ste:
         raise EccoFatalException("", "Tried to load nonexistent global variable")
-    elif type(ste.identifier_type.contents) != Number:
+    elif not isinstance(ste.identifier_type.contents, Number):
         raise EccoInternalTypeError(
             "Number",
             str(type(ste.identifier_type.contents)),
@@ -515,7 +515,7 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
     ste = SYMBOL_TABLE_STACK[name]
     if ste:
         if (
-            type(ste.identifier_type.contents) == Number
+            isinstance(ste.identifier_type.contents, Number)
             and rvalue.number_type != ste.identifier_type.contents.ntype
         ):
             rvalue = llvm_int_resize(rvalue, ste.identifier_type.contents.ntype)
@@ -525,7 +525,7 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
             f"Undeclared identifier {name} was allowed to propagate to LLVM generation",
         )
 
-    if type(ste.identifier_type.contents) != Number:
+    if not isinstance(ste.identifier_type.contents, Number):
         raise EccoFatalException("", "Tried to store data into non-number")
 
     if rvalue.value_type == LLVMValueType.VIRTUAL_REGISTER:
@@ -538,7 +538,7 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
                 "", "Pointer mismatch when trying to save to global variable"
             )
 
-        if type(ste.identifier_type.contents) == Number:
+        if isinstance(ste.identifier_type.contents, Number):
             LLVM_OUT_FILE.writelines(
                 [
                     TAB,
@@ -572,13 +572,14 @@ def llvm_store_local(
         name (Union[LLVMValue, Optional[SymbolTableEntry]]): Local variable to store into
         rvalue_reg (int): Register containing the contents to store into the variable
     """
-    if type(var) == LLVMValue or (
-        type(var) == SymbolTableEntry and rvalue.value_type == LLVMValueType.CONSTANT
+    if isinstance(var, LLVMValue) or (
+        isinstance(var, SymbolTableEntry)
+        and rvalue.value_type == LLVMValueType.CONSTANT
     ):
         lvar: LLVMValue = LLVMValue(LLVMValueType.NONE)
-        if type(var) == LLVMValue:
+        if isinstance(var, LLVMValue):
             lvar = var
-        elif type(var) == SymbolTableEntry:
+        elif isinstance(var, SymbolTableEntry):
             lvar = var.latest_llvmvalue
 
         rvalue = llvm_ensure_registers_loaded([rvalue], lvar.pointer_depth - 1)[0]
@@ -594,7 +595,7 @@ def llvm_store_local(
                 NEWLINE,
             ]
         )
-    elif type(var) == SymbolTableEntry and rvalue.is_register:
+    elif isinstance(var, SymbolTableEntry) and rvalue.is_register:
         var.latest_llvmvalue = rvalue
     else:
         raise EccoInternalTypeError(
@@ -791,7 +792,7 @@ def llvm_function_preamble(function_name: str) -> List[LLVMValue]:
         raise EccoIdentifierError(
             "Tried to generate function preamble for undeclared function"
         )
-    elif type(entry.identifier_type.contents) != Function:
+    elif not isinstance(entry.identifier_type.contents, Function):
         raise EccoInternalTypeError(
             "Function",
             str(entry.identifier_type.type),
@@ -853,7 +854,7 @@ def llvm_function_preamble(function_name: str) -> List[LLVMValue]:
             raise EccoFatalException(
                 f"Lost track of parameter '{arg_name}' in function definition '{function_name}'"
             )
-        # elif type(func_arg.identifier_type.contents) != Number:
+        # elif not isinstance(func_arg.identifier_type.contents, Number):
         #     raise EccoFatalException(
         #         f"Tried to use non-number as parameter '{arg_name}' in function definition '{function_name}'"
         #     )
@@ -878,7 +879,7 @@ def llvm_function_postamble(function_name: str) -> None:
         raise EccoIdentifierError(
             f'Tried to close undeclared function "{function_name}"'
         )
-    elif type(entry.identifier_type.contents) != Function:
+    elif not isinstance(entry.identifier_type.contents, Function):
         raise EccoFatalException(
             "",
             f'Tried to close non-function identifier "{function_name}"',
@@ -941,7 +942,7 @@ def llvm_return(return_value: LLVMValue, function_name: str) -> None:
         raise EccoIdentifierError(
             f'Tried to return for undeclared function "{function_name}"'
         )
-    elif type(entry.identifier_type.contents) != Function:
+    elif not isinstance(entry.identifier_type.contents, Function):
         raise EccoFatalException(
             "",
             f'Tried to generate return statement for non-function identifier "{function_name}"',
@@ -983,7 +984,7 @@ def llvm_call_function(arguments: List[LLVMValue], function_name: str) -> LLVMVa
         raise EccoIdentifierError(
             f'Tried to generate call for undeclared function "{function_name}"'
         )
-    elif type(entry.identifier_type.contents) != Function:
+    elif not isinstance(entry.identifier_type.contents, Function):
         raise EccoFatalException(
             "",
             f'Tried to call non-function identifier "{function_name}" as function',
@@ -1113,8 +1114,8 @@ def llvm_array_access(array_name: str, offset: LLVMValue) -> LLVMValue:
     if not ste:
         raise EccoIdentifierError(f'Tried to access non-existent array "{array_name}"')
 
-    if type(ste.identifier_type.contents) != Array:
-        # if type(ste.identifier_type.contents) == Number and ste.identifier_type.contents.pointer_depth > 0:
+    if not isinstance(ste.identifier_type.contents, Array):
+        # if isinstance(ste.identifier_type.contents, Number) and ste.identifier_type.contents.pointer_depth > 0:
 
         raise EccoFatalException("", "Non-array stored in array access node")
     arr_type: Array = ste.identifier_type.contents

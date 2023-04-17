@@ -138,7 +138,7 @@ class Token:
 
         # Getting around the linter
         def to_list(x):
-            if type(x) != list:
+            if not isinstance(x, list):
                 return [x]
             return x
 

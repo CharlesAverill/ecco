@@ -48,7 +48,7 @@ class ASTNode:
 
     @property
     def is_rvalue(self) -> bool:
-        return self._is_rvalue if type(self._is_rvalue) == bool else False
+        return self._is_rvalue if isinstance(self._is_rvalue, bool) else False
 
     @is_rvalue.setter
     def is_rvalue(self, b: bool) -> None:

@@ -205,15 +205,15 @@ class Type:
 
     @property
     def llvm_repr(self) -> str:
-        if type(self.contents) == Number:
+        if isinstance(self.contents, Number):
             return str(self.contents.ntype)
-        elif type(self.contents) == Function:
+        elif isinstance(self.contents, Function):
             if self.contents.return_type:
                 if isinstance(self.contents.return_type, Number):
                     return str(self.contents.return_type.ntype)
                 return self.contents.return_type.llvm_repr
             else:
                 return "void"
-        elif type(self.contents) == Array:
+        elif isinstance(self.contents, Array):
             return str(self.contents.ntype)
         return "brokentype"

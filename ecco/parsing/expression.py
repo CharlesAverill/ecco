@@ -77,9 +77,9 @@ def postfix_operator() -> ASTNode:
 
     match_token(TokenType.IDENTIFIER)
 
-    if type(ident.identifier_type.contents) == Function:
+    if isinstance(ident.identifier_type.contents, Function):
         return function_call_expression(ident.identifier_name)
-    # elif type(ident.identifier_type.contents) == Array:
+    # elif isinstance(ident.identifier_type.contents, Array):
     elif GLOBAL_SCANNER.current_token.type == TokenType.LEFT_BRACKET:
         return array_access_expression(ident)
     else:
@@ -137,7 +137,7 @@ def function_call_expression(function_name: str) -> ASTNode:
         raise EccoIdentifierError(
             f'Tried to call undeclared function "{function_name}"'
         )
-    elif type(ident.identifier_type.contents) != Function:
+    elif not isinstance(ident.identifier_type.contents, Function):
         raise EccoIdentifierError(
             "Tried to call function with identifier bound to number value"
         )

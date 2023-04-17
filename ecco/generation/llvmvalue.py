@@ -64,9 +64,9 @@ class LLVMValue:
             LLVMValueType.LABEL,
             LLVMValueType.CONSTANT,
         ]:
-            if type(value) == int:
+            if isinstance(value, int):
                 self.int_value = value
-            elif type(value) == str:
+            elif isinstance(value, str):
                 self.str_value = value
             else:
                 raise EccoInternalTypeError(

@@ -22,7 +22,7 @@ class SymbolTableEntry:
 
     @property
     def ntype(self) -> NumberType:
-        if type(self.identifier_type.contents) == Number:
+        if isinstance(self.identifier_type.contents, Number):
             return self.identifier_type.contents.ntype
 
         raise EccoInternalTypeError(

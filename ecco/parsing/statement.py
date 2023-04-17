@@ -24,8 +24,8 @@ def match_token(
     """
     from ..ecco import GLOBAL_SCANNER
 
-    if (type(tt) == TokenType and GLOBAL_SCANNER.current_token.type == tt) or (
-        type(tt) == list and GLOBAL_SCANNER.current_token.type in tt
+    if (isinstance(tt, TokenType) and GLOBAL_SCANNER.current_token.type == tt) or (
+        isinstance(tt, list) and GLOBAL_SCANNER.current_token.type in tt
     ):
         token_value = GLOBAL_SCANNER.current_token.value
         token_type = GLOBAL_SCANNER.current_token.type

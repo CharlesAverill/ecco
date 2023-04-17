@@ -24,7 +24,7 @@ def assignment_statement() -> ASTNode:
     tree: ASTNode
 
     ident = match_token(TokenType.IDENTIFIER)[0]
-    if type(ident) != str:
+    if not isinstance(ident, str):
         raise EccoInternalTypeError(
             "str",
             str(type(GLOBAL_SCANNER.current_token.value)),
@@ -34,7 +34,7 @@ def assignment_statement() -> ASTNode:
     symbol: Optional[SymbolTableEntry] = SYMBOL_TABLE_STACK[ident]
     if symbol is None:
         raise EccoFatalException("", f'Undefined variable "{ident}"')
-    # elif type(symbol.identifier_type.contents) == Function:
+    # elif isinstance(symbol.identifier_type.contents, Function):
     #     return function_call_expression(symbol.identifier_name)
 
     right = ASTNode(Token(TokenType.IDENTIFIER, ident), None, None, None)
