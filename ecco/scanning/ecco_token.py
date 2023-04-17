@@ -67,6 +67,9 @@ class TokenType(Enum):
     COMMA = ","
     ARRAY_ACCESS = "%array access"
 
+    def is_operator(self):
+        return int(TokenType.PLUS) <= int(self) <= int(TokenType.SLASH)
+
     def is_type(self):
         return int(TokenType.VOID) <= int(self) <= int(TokenType.STRUCT)
 

@@ -11,7 +11,7 @@ from ..utils import (
 )
 from .llvmstackentry import LLVMStackEntry
 from .llvmvalue import LLVMValue, LLVMValueType
-from .types import Array
+from .types import Array, NumberType, Number
 import tempfile
 
 LLVM_OUT_FILE: TextIO
@@ -270,7 +270,11 @@ def ast_to_llvm(
         if root.type == TokenType.INTEGER_LITERAL:
             if ARGS.opt != 0:
                 return LLVMValue(
-                    LLVMValueType.CONSTANT, int(root.token.value), root.tree_type.ntype
+                    LLVMValueType.CONSTANT,
+                    int(root.token.value),
+                    root.tree_type.ntype
+                    if isinstance(root.tree_type, Number)
+                    else NumberType.INT,
                 )
             return llvm_store_constant(int(root.token.value))
     # Local variable declaration

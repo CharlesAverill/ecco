@@ -12,7 +12,7 @@ FNV_PRIME = 0x100000001B3
 
 
 class SymbolTableEntry:
-    def __init__(self, _identifier_name: str, t: Type, ll: LLVMValue = None):
+    def __init__(self, _identifier_name: str, t: Type, ll: Optional[LLVMValue] = None):
         self.identifier_name: str = _identifier_name
         self.identifier_type: Type = t
 
@@ -215,7 +215,7 @@ SymbolTable = HashTableSymbolTable
 
 
 class SymbolTableStack:
-    def __init__(self):
+    def __init__(self) -> None:
         self.tables: List[SymbolTable] = [SymbolTable()]  # Global Symbol Table
 
     def push(self) -> None:

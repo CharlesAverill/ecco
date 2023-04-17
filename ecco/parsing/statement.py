@@ -1,11 +1,11 @@
 from .ecco_ast import ASTNode
 from ..scanning import TokenType, Token
-from ..utils import EccoSyntaxError, EccoFatalException
+from ..utils import EccoSyntaxError, EccoFatalException, EccoIdentifierError
 from typing import Optional, Union, List, Tuple
 from .declaration import declaration_statement
 from .assignment import assignment_statement
 from ..generation.symboltable import SymbolTableEntry
-from ..generation.types import Number, NumberType, Struct
+from ..generation.types import Number, NumberType, Struct, Function, Array
 
 
 def match_token(
@@ -45,15 +45,27 @@ def match_type() -> Union[Number, Struct]:
     """
     from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
 
-    ttype = match_token(
-        [
-            TokenType.VOID,
-            TokenType.INT,
-            TokenType.CHAR,
-            TokenType.LONG,
-            TokenType.STRUCT,
-        ]
-    )[1]
+    ttype: TokenType
+    out: Union[Number, Function, Array, Struct]
+    if GLOBAL_SCANNER.current_token.type == TokenType.STRUCT:
+        match_token(TokenType.STRUCT)
+        ttype = TokenType.STRUCT
+
+        struct_name = str(match_token(TokenType.IDENTIFIER)[0])
+        ste = SYMBOL_TABLE_STACK.GST[struct_name]
+        if ste:
+            out = ste.identifier_type.contents
+        else:
+            raise EccoIdentifierError(f"Lost track of {struct_name}!")
+    else:
+        ttype = match_token(
+            [
+                TokenType.VOID,
+                TokenType.INT,
+                TokenType.CHAR,
+                TokenType.LONG,
+            ]
+        )[1]
 
     pointer_depth = 0
     while GLOBAL_SCANNER.current_token.type == TokenType.STAR:
@@ -61,12 +73,12 @@ def match_type() -> Union[Number, Struct]:
         pointer_depth += 1
 
     if ttype == TokenType.STRUCT:
-        struct_name = str(match_token(TokenType.IDENTIFIER)[0])
-        out = SYMBOL_TABLE_STACK.GST[struct_name].identifier_type.contents
-        if isinstance(out, Struct):
-            return out
-
-    return Number(NumberType.from_tokentype(ttype), 0, pointer_depth)
+        if not isinstance(out, Struct):
+            raise EccoIdentifierError(f"{struct_name} is not a structure")
+        out.pointer_depth = pointer_depth
+        return out
+    else:
+        return Number(NumberType.from_tokentype(ttype), 0, pointer_depth)
 
 
 def print_statement() -> ASTNode:

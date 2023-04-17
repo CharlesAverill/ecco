@@ -1,8 +1,8 @@
 from enum import Enum
-from typing import Union
+from typing import Union, Optional
 
 from ..utils.ecco_logging import EccoInternalTypeError
-from .types import NumberType, Array
+from .types import NumberType, Array, Struct
 
 
 class LLVMValueType(Enum):
@@ -29,7 +29,8 @@ class LLVMValue:
         nt: NumberType = NumberType.INT,
         pointer_depth: int = 0,
         just_loaded: str = "",
-        array_type: Array = None,
+        array_type: Optional[Array] = None,
+        struct_type: Optional[Struct] = None,
     ):
         """Stores data about various kinds of LLVM Values
 
@@ -47,10 +48,14 @@ class LLVMValue:
         self.pointer_depth: int = pointer_depth
         self.just_loaded: str = just_loaded
 
-        self.is_num: bool
+        self.is_num: bool = False
+        self.array: Optional[Array] = None
+        self.struct: Optional[Struct] = None
         if array_type:
-            self.is_num = False
+            self.array = array_type
             self.array_length: int = array_type.length
+        elif struct_type:
+            self.struct = struct_type
         else:
             self.is_num = True
 
@@ -90,6 +95,8 @@ class LLVMValue:
     def llvm_type(self) -> str:
         if self.is_num:
             return f"{self.number_type}{self.references}"
+        elif self.struct:
+            return self.struct.llvm_repr
         else:
             # We are implicitly not supporting arrays of pointers by excluding
             # {something.references} here. We'll need to do a better unification of

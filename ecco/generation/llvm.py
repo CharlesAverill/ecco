@@ -130,13 +130,15 @@ def llvm_ensure_registers_loaded(
                     new_reg,
                     registers_to_check[i].number_type,
                     registers_to_check[i].pointer_depth - 1,
+                    array_type=registers_to_check[i].array,
+                    struct_type=registers_to_check[i].struct,
                 )
             )
             LLVM_OUT_FILE.writelines(
                 [
                     TAB,
-                    f"%{new_reg} = load {registers_to_check[i].number_type}{loaded_registers[-1].references},"
-                    f" {registers_to_check[i].number_type}{registers_to_check[i].references} %{registers_to_check[i].register_name}",
+                    f"%{new_reg} = load {loaded_registers[-1].llvm_type},"
+                    f" {registers_to_check[i].llvm_type} %{registers_to_check[i].register_name}",
                     NEWLINE,
                 ]
             )
@@ -433,7 +435,7 @@ def llvm_declare_global(
     )
 
 
-def llvm_declare_local(name: str, typ: Union[Number, Array]):
+def llvm_declare_local(name: str, typ: Union[Number, Array, Struct]):
     """Declare a local variable
 
     Args:
@@ -446,7 +448,8 @@ def llvm_declare_local(name: str, typ: Union[Number, Array]):
         name,
         typ.ntype,
         typ.pointer_depth,
-        array_type=(typ if type(typ) == Array else None),
+        array_type=(typ if isinstance(typ, Array) else None),
+        struct_type=(typ if isinstance(typ, Struct) else None),
     )
 
     llvm_stack_allocation([LLVMStackEntry(out, typ.ntype.byte_width)])
@@ -587,7 +590,7 @@ def llvm_store_local(
                 "; llvm_store_local",
                 NEWLINE,
                 TAB,
-                f"store {rvalue.llvm_repr}, {lvar.number_type}{lvar.references} %{lvar.register_name}",
+                f"store {rvalue.llvm_repr}, {lvar.llvm_type} %{lvar.register_name}",
                 NEWLINE,
             ]
         )
@@ -800,7 +803,7 @@ def llvm_function_preamble(function_name: str) -> List[LLVMValue]:
             f"define dso_local {entry.identifier_type.llvm_repr} @{function_name}(",
             ", ".join(
                 [
-                    f"{arg_num.ntype}{arg_num.references} %{get_next_local_virtual_register() - 1}"
+                    f"{arg_num.llvm_repr} %{get_next_local_virtual_register() - 1}"
                     for arg_num in entry.identifier_type.contents.arguments.values()
                 ]
             ),
@@ -820,6 +823,8 @@ def llvm_function_preamble(function_name: str) -> List[LLVMValue]:
                 arg_name,
                 arg_num.ntype,
                 arg_num.pointer_depth,
+                array_type=arg_num if isinstance(arg_num, Array) else None,
+                struct_type=arg_num if isinstance(arg_num, Struct) else None,
             )
         )
 
@@ -838,6 +843,8 @@ def llvm_function_preamble(function_name: str) -> List[LLVMValue]:
                 i,
                 arg_num.ntype,
                 arg_num.pointer_depth,
+                array_type=arg_num if isinstance(arg_num, Array) else None,
+                struct_type=arg_num if isinstance(arg_num, Struct) else None,
             ),
         )
 
@@ -846,10 +853,10 @@ def llvm_function_preamble(function_name: str) -> List[LLVMValue]:
             raise EccoFatalException(
                 f"Lost track of parameter '{arg_name}' in function definition '{function_name}'"
             )
-        elif type(func_arg.identifier_type.contents) != Number:
-            raise EccoFatalException(
-                f"Tried to use non-number as parameter '{arg_name}' in function definition '{function_name}'"
-            )
+        # elif type(func_arg.identifier_type.contents) != Number:
+        #     raise EccoFatalException(
+        #         f"Tried to use non-number as parameter '{arg_name}' in function definition '{function_name}'"
+        #     )
 
         func_arg.latest_llvmvalue = arguments_llvmvalues[-1]
 
@@ -893,9 +900,11 @@ def llvm_function_postamble(function_name: str) -> None:
 
 
 def llvm_struct_declaration(struct_name: str) -> None:
-    entry: SymbolTableEntry = SYMBOL_TABLE_STACK.GST[struct_name]
+    entry: Optional[SymbolTableEntry] = SYMBOL_TABLE_STACK.GST[struct_name]
     if not (entry and isinstance(entry.identifier_type.contents, Struct)):
-        raise EccoInternalTypeError("Struct", type(entry))
+        raise EccoInternalTypeError(
+            "Struct", str(type(entry)), "llvm.py:llvm_struct_declaration"
+        )
 
     LLVM_OUT_FILE.writelines([f"%{struct_name} = type {{", NEWLINE])
 
@@ -1105,6 +1114,8 @@ def llvm_array_access(array_name: str, offset: LLVMValue) -> LLVMValue:
         raise EccoIdentifierError(f'Tried to access non-existent array "{array_name}"')
 
     if type(ste.identifier_type.contents) != Array:
+        # if type(ste.identifier_type.contents) == Number and ste.identifier_type.contents.pointer_depth > 0:
+
         raise EccoFatalException("", "Non-array stored in array access node")
     arr_type: Array = ste.identifier_type.contents
 
@@ -1115,13 +1126,13 @@ def llvm_array_access(array_name: str, offset: LLVMValue) -> LLVMValue:
         get_next_local_virtual_register(),
         arr_type.ntype,
         arr_type.pointer_depth,
-        array_type=arr_type,
+        # array_type=arr_type,
     )
 
     LLVM_OUT_FILE.writelines(
         [
             TAB,
-            f"%{lv.register_name} = getelementptr inbounds {lv.llvm_type}, ",
+            f"%{lv.register_name} = getelementptr inbounds {ste.latest_llvmvalue.llvm_type[:-1]}, ",
             f"{ste.latest_llvmvalue.llvm_repr}, i64 0, {offset.llvm_repr}",
             NEWLINE,
         ]

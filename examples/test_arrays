@@ -1,9 +1,17 @@
+void print_array(int a[10]) {
+    int i;
+    for(i = 0; i < 10; i = i + 1) {
+        printint(a[i]);
+    }
+}
+
 int main() {
     int a[10];
     int i;
     int x;
 
     for(i = 0; i < 10; i = i + 1) {
+        // *(a + i) = 2 * i;
         a[i] = 2 * i;
         x = a[i];
 
@@ -12,5 +20,6 @@ int main() {
     }
 
     printint(a[8] = 2 * (3 + 5));
-    printint(a[8]);
+    
+    print_array(a);
 }

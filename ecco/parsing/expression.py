@@ -9,7 +9,7 @@ from ..utils import (
 from .ecco_ast import ASTNode
 from typing import Optional
 from ..generation.symboltable import SymbolTableEntry
-from ..generation.types import Array, Function
+from ..generation.types import Function
 from .statement import match_token
 from .optimization import optimize_AST
 
@@ -39,30 +39,13 @@ def parse_terminal_node() -> ASTNode:
     Returns:
         ASTNode: An ASTNode storing the parsed terminal token information
     """
-    from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
+    from ..ecco import GLOBAL_SCANNER
 
     out: ASTNode
     if GLOBAL_SCANNER.current_token.type == TokenType.INTEGER_LITERAL:
         out = ASTNode(GLOBAL_SCANNER.current_token, None, None, None)
     elif GLOBAL_SCANNER.current_token.type == TokenType.IDENTIFIER:
-        ident: Optional[SymbolTableEntry] = SYMBOL_TABLE_STACK[
-            str(GLOBAL_SCANNER.current_token.value)
-        ]
-        if not ident:
-            raise EccoIdentifierError(
-                f'Undeclared identifier "{GLOBAL_SCANNER.current_token.value}"'
-            )
-
-        if type(ident.identifier_type.contents) == Function:
-            match_token(TokenType.IDENTIFIER)
-            return function_call_expression(ident.identifier_name)
-        elif type(ident.identifier_type.contents) == Array:
-            match_token(TokenType.IDENTIFIER)
-            return array_access_expression(ident)
-        else:
-            out = ASTNode(
-                Token(TokenType.IDENTIFIER, ident.identifier_name), None, None, None
-            )
+        return postfix_operator()
     elif GLOBAL_SCANNER.current_token.type == TokenType.LEFT_PARENTHESIS:
         match_token(TokenType.LEFT_PARENTHESIS)
         out = parse_binary_expression()
@@ -79,6 +62,30 @@ def parse_terminal_node() -> ASTNode:
 
     GLOBAL_SCANNER.scan()
     return out
+
+
+def postfix_operator() -> ASTNode:
+    from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
+
+    ident: Optional[SymbolTableEntry] = SYMBOL_TABLE_STACK[
+        str(GLOBAL_SCANNER.current_token.value)
+    ]
+    if not ident:
+        raise EccoIdentifierError(
+            f'Undeclared identifier "{GLOBAL_SCANNER.current_token.value}"'
+        )
+
+    match_token(TokenType.IDENTIFIER)
+
+    if type(ident.identifier_type.contents) == Function:
+        return function_call_expression(ident.identifier_name)
+    # elif type(ident.identifier_type.contents) == Array:
+    elif GLOBAL_SCANNER.current_token.type == TokenType.LEFT_BRACKET:
+        return array_access_expression(ident)
+    else:
+        return ASTNode(
+            Token(TokenType.IDENTIFIER, ident.identifier_name), None, None, None
+        )
 
 
 def prefix_operator_passthrough() -> ASTNode:

@@ -15,7 +15,6 @@ def function_declaration_statement() -> ASTNode:
     """
     from .statement import match_token, parse_statements, match_type
     from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
-    from ..generation.llvmvalue import LLVMValue, LLVMValueType
 
     return_type: Union[Number, Struct] = match_type()
     identifier: Union[str, int] = match_token(TokenType.IDENTIFIER)[0]
@@ -47,8 +46,8 @@ def function_declaration_statement() -> ASTNode:
     match_token(TokenType.LEFT_PARENTHESIS)
 
     # Grab arguments
-    arguments: OrderedDict[str, Number] = OrderedDict()
-    expected_arguments: Optional[List[Number]] = None
+    arguments: OrderedDict[str, Union[Array, Number, Struct]] = OrderedDict()
+    expected_arguments: Optional[List[Union[Array, Number, Struct]]] = None
     if (
         expecting_definition
         and gst_entry
@@ -60,8 +59,11 @@ def function_declaration_statement() -> ASTNode:
         if len(arguments) and GLOBAL_SCANNER.current_token.type == TokenType.COMMA:
             match_token(TokenType.COMMA)
 
-        arg_type: Union[Number, Struct] = match_type()
-        arg_name: str = str(match_token(TokenType.IDENTIFIER)[0])
+        # arg_type: Union[Number, Struct] = match_type()
+        # arg_name: str = str(match_token(TokenType.IDENTIFIER)[0])
+        arg = declaration_statement()
+        arg_name = str(arg.token.value)
+        arg_type = arg.tree_type
 
         if (
             expecting_definition
@@ -74,16 +76,16 @@ def function_declaration_statement() -> ASTNode:
 
         arguments[arg_name] = arg_type
 
-        SYMBOL_TABLE_STACK.LST[arg_name] = SymbolTableEntry(
-            arg_name,
-            Type(arg_type.ntype.to_tokentype(), arg_type),
-            LLVMValue(
-                LLVMValueType.VIRTUAL_REGISTER,
-                arg_name,
-                arg_type.ntype,
-                arg_type.pointer_depth,
-            ),
-        )
+        # SYMBOL_TABLE_STACK.LST[arg_name] = SymbolTableEntry(
+        #     arg_name,
+        #     Type(arg_type.tokentype, arg_type),
+        #     LLVMValue(
+        #         LLVMValueType.VIRTUAL_REGISTER,
+        #         arg_name,
+        #         arg_type.ntype if isinstance(arg_type, Number) else NumberType.INT,
+        #         arg_type.pointer_depth,
+        #     ),
+        # )
     if expected_arguments and len(arguments) != len(expected_arguments):
         raise EccoIdentifierError(
             f'Function "{identifier}" expected to have {len(expected_arguments)} arguments, but got {len(arguments)}'
@@ -129,7 +131,7 @@ def declaration_statement() -> ASTNode:
     from .statement import match_token, match_type
     from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
 
-    num: Union[Number, Struct] = match_type()
+    vartype: Union[Number, Struct] = match_type()
 
     ident = match_token(TokenType.IDENTIFIER)[0]
     if not isinstance(ident, str):
@@ -144,7 +146,7 @@ def declaration_statement() -> ASTNode:
         match_token(TokenType.LEFT_BRACKET)
 
         if GLOBAL_SCANNER.current_token.type == TokenType.INTEGER_LITERAL:
-            arr_type = Array(num, int(GLOBAL_SCANNER.current_token.value))
+            arr_type = Array(vartype, int(GLOBAL_SCANNER.current_token.value))
             match_token(TokenType.INTEGER_LITERAL)
         else:
             # We will add another case for something like arr[] = {0, 1, 2};
@@ -153,15 +155,15 @@ def declaration_statement() -> ASTNode:
 
         match_token(TokenType.RIGHT_BRACKET)
 
-    ident_type: Union[Array, Number] = arr_type if arr_type else num
+    ident_type: Union[Array, Number, Struct] = arr_type if arr_type else vartype
 
     # num.pointer_depth += 1
     SYMBOL_TABLE_STACK.LST[ident] = SymbolTableEntry(
-        ident, Type(num.ntype.to_tokentype(), ident_type)
+        ident, Type(vartype.tokentype, ident_type)
     )
 
     ste = SYMBOL_TABLE_STACK.LST[ident]
-    if ste and type(ste.identifier_type.contents) in [Number, Array]:
+    if ste and type(ste.identifier_type.contents) in [Struct, Number, Array]:
         return ASTNode(Token(TokenType.VAR_DECL, ident), tree_type=ident_type)
         # llvm_declare_global(ident, 0, num)
         # ste.latest_llvmvalue = llvm_declare_local(ident, 0, num)
@@ -178,7 +180,7 @@ def struct_declaration_statement() -> ASTNode:
 
     match_token(TokenType.LEFT_BRACE)
 
-    arguments = OrderedDict()
+    arguments: OrderedDict[str, Union[Number, Struct]] = OrderedDict()
     while GLOBAL_SCANNER.current_token.type != TokenType.RIGHT_BRACE:
         arg_type = match_type()
         arg_name = str(match_token(TokenType.IDENTIFIER)[0])
@@ -187,7 +189,7 @@ def struct_declaration_statement() -> ASTNode:
         arguments[arg_name] = arg_type
 
     SYMBOL_TABLE_STACK.GST[identifier] = SymbolTableEntry(
-        identifier, Type(TokenType.STRUCT, Struct(arguments))
+        identifier, Type(TokenType.STRUCT, Struct(identifier, arguments))
     )
 
     match_token(TokenType.RIGHT_BRACE)

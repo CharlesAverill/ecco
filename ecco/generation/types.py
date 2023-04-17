@@ -81,6 +81,10 @@ class Number:
     def llvm_repr(self) -> str:
         return f"{self.ntype}{self.references}"
 
+    @property
+    def tokentype(self) -> TokenType:
+        return self.ntype.to_tokentype()
+
     def __repr__(self) -> str:
         return f"Number [{self.ntype}{'*' * self.pointer_depth}] ({self.value})"
 
@@ -97,9 +101,13 @@ class Number:
 
 class Array:
     def __init__(
-        self, num: Number, length: int, contents: List[float] = [], dimension: int = 1
+        self,
+        numstruct: Union[Number, "Struct"],
+        length: int,
+        contents: List[float] = [],
+        dimension: int = 1,
     ):
-        self.num = num
+        self.type = numstruct
 
         # I would like to have this be length <= 0, but C compilers let users
         # define length-0 arrays. That's ridiculous! But I'll stick with the "standard"
@@ -121,29 +129,33 @@ class Array:
 
     @property
     def ntype(self) -> NumberType:
-        return self.num.ntype
+        if not isinstance(self.type, Number):
+            raise EccoInternalTypeError(
+                "Number", str(type(self.type)), "types.py:Array:ntype"
+            )
+        return self.type.ntype
 
     @property
     def pointer_depth(self) -> int:
-        return self.num.pointer_depth
+        return self.type.pointer_depth
 
     @pointer_depth.setter
     def pointer_depth(self, i: int) -> None:
-        self.num.pointer_depth = i
+        self.type.pointer_depth = i
 
     @property
     def llvm_repr(self) -> str:
-        return f"[{self.length} x {self.num.llvm_repr}]"
+        return f"[{self.length} x {self.type.llvm_repr}]"
 
 
 class Function:
     def __init__(
         self,
-        rtype: Number,
-        arguments: OrderedDict[str, Number],
+        rtype: Union[Number, "Struct"],
+        arguments: OrderedDict[str, Union[Array, Number, "Struct"]],
         is_prototype: bool = False,
     ):
-        self.return_type: Number = rtype
+        self.return_type: Union[Number, "Struct"] = rtype
         self.arguments = arguments
         self.is_prototype = is_prototype
 
@@ -156,8 +168,28 @@ class Function:
 
 
 class Struct:
-    def __init__(self, fields: OrderedDict[str, "Type"]):
+    def __init__(
+        self, name: str, fields: OrderedDict[str, Union[Number, "Struct"]], pd: int = 0
+    ):
+        self.name = name
         self.fields = fields
+        self.pointer_depth = pd
+
+    @property
+    def tokentype(self) -> TokenType:
+        return TokenType.STRUCT
+
+    @property
+    def ntype(self) -> NumberType:
+        return NumberType.INT
+
+    @property
+    def references(self) -> str:
+        return "*" * self.pointer_depth
+
+    @property
+    def llvm_repr(self) -> str:
+        return f"%{self.name}{self.references}"
 
 
 class Type:
@@ -177,7 +209,9 @@ class Type:
             return str(self.contents.ntype)
         elif type(self.contents) == Function:
             if self.contents.return_type:
-                return str(self.contents.return_type.ntype)
+                if isinstance(self.contents.return_type, Number):
+                    return str(self.contents.return_type.ntype)
+                return self.contents.return_type.llvm_repr
             else:
                 return "void"
         elif type(self.contents) == Array:

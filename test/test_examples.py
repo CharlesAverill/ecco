@@ -132,7 +132,16 @@ def test_arrays():
 9
 18
 16
-16""")
+0
+2
+4
+6
+8
+10
+12
+14
+16
+18""")
             
 
 def test_prototypes():
