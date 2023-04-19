@@ -5,7 +5,7 @@ from ..utils import (
     EccoSyntaxError,
     EccoEOFMissingSemicolonError,
     EccoIdentifierError,
-    EccoInternalTypeError
+    EccoInternalTypeError,
 )
 from .ecco_ast import ASTNode
 from typing import Optional
@@ -177,16 +177,27 @@ def array_access_expression(array_ste: SymbolTableEntry) -> ASTNode:
 
 def struct_access_expression(struct_ste: SymbolTableEntry) -> ASTNode:
     if not isinstance(struct_ste.identifier_type.contents, Struct):
-        raise EccoInternalTypeError("expression.py:postfix_operator", "Struct", str(type(struct_ste.identifier_type.contents)))
+        raise EccoInternalTypeError(
+            "expression.py:postfix_operator",
+            "Struct",
+            str(type(struct_ste.identifier_type.contents)),
+        )
     struct_obj = struct_ste.identifier_type.contents
 
     match_token(TokenType.FIELD_ACCESS)
 
     field_name: str = str(match_token(TokenType.IDENTIFIER)[0])
     if field_name not in struct_obj.fields:
-        raise EccoIdentifierError(f'Struct "{struct_obj.name}" does not have field "{field_name}"')
+        raise EccoIdentifierError(
+            f'Struct "{struct_obj.name}" does not have field "{field_name}"'
+        )
 
-    return ASTNode(Token(TokenType.FIELD_ACCESS, [struct_ste.identifier_name, struct_obj.name,  field_name]))
+    return ASTNode(
+        Token(
+            TokenType.FIELD_ACCESS,
+            [struct_ste.identifier_name, struct_obj.name, field_name],
+        )
+    )
 
 
 def error_check_precedence(node_type: TokenType) -> int:

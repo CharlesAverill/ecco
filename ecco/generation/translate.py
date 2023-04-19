@@ -366,7 +366,11 @@ def ast_to_llvm(
         return llvm_array_access(str(root.token.value), left_vr)
     # Struct field access
     elif root.type == TokenType.FIELD_ACCESS:
-        return llvm_struct_access(str(root.token.values[0]), str(root.token.values[1]), str(root.token.values[2]))
+        return llvm_struct_access(
+            str(root.token.values[0]),
+            str(root.token.values[1]),
+            str(root.token.values[2]),
+        )
     # Print statement
     elif root.type == TokenType.PRINT:
         llvm_print_int(left_vr)

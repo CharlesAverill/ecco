@@ -1144,25 +1144,39 @@ def llvm_array_access(array_name: str, offset: LLVMValue) -> LLVMValue:
     # return llvm_dereference(lv)
     return lv
 
+
 def llvm_struct_access(ident_name: str, struct_name: str, field_name: str) -> LLVMValue:
     ste = SYMBOL_TABLE_STACK[ident_name]
+    if not ste:
+        raise EccoIdentifierError(f'Lost track of struct object "{ident_name}"')
     if not isinstance(ste.identifier_type.contents, Struct):
-        raise EccoInternalTypeError("expression.py:postfix_operator", "Struct", str(type(ste.identifier_type.contents)))
+        raise EccoInternalTypeError(
+            "expression.py:postfix_operator",
+            "Struct",
+            str(type(ste.identifier_type.contents)),
+        )
     struct_obj = ste.identifier_type.contents
 
-    if not field_name in struct_obj.fields:
-        raise EccoFatalException("", "Unrecognized field access allowed to progress to code generation")
+    if field_name not in struct_obj.fields:
+        raise EccoFatalException(
+            "", "Unrecognized field access allowed to progress to code generation"
+        )
 
     field = struct_obj.fields[field_name]
-    out = LLVMValue(LLVMValueType.VIRTUAL_REGISTER, get_next_local_virtual_register(), 
-        nt = field.ntype if isinstance(field, Number) else None,
-        struct_type = field if isinstance(field, Struct) else None
+    out = LLVMValue(
+        LLVMValueType.VIRTUAL_REGISTER,
+        get_next_local_virtual_register(),
+        nt=field.ntype if isinstance(field, Number) else NumberType.INT,
+        struct_type=field if isinstance(field, Struct) else None,
     )
 
-    LLVM_OUT_FILE.writelines([
-        TAB, f"%{out.register_name} = getelementptr %{struct_name}, {ste.latest_llvmvalue.llvm_repr}, i32 0, i32 {list(struct_obj.fields.keys()).index(field_name)}",
-        NEWLINE
-    ])
+    LLVM_OUT_FILE.writelines(
+        [
+            TAB,
+            f"%{out.register_name} = getelementptr %{struct_name}, {ste.latest_llvmvalue.llvm_repr}, i32 0, i32 {list(struct_obj.fields.keys()).index(field_name)}",
+            NEWLINE,
+        ]
+    )
 
     out.pointer_depth += 1
 
