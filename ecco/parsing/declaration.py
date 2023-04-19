@@ -131,6 +131,11 @@ def declaration_statement() -> ASTNode:
     from .statement import match_token, match_type
     from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
 
+    const = False
+    if GLOBAL_SCANNER.current_token.type == TokenType.CONST:
+        match_token(TokenType.CONST)
+        const = True
+
     vartype: Union[Number, Struct] = match_type()
 
     ident = match_token(TokenType.IDENTIFIER)[0]
@@ -159,12 +164,27 @@ def declaration_statement() -> ASTNode:
 
     # num.pointer_depth += 1
     SYMBOL_TABLE_STACK.LST[ident] = SymbolTableEntry(
-        ident, Type(vartype.tokentype, ident_type)
+        ident, Type(vartype.tokentype, ident_type), writeable=not const
     )
 
     ste = SYMBOL_TABLE_STACK.LST[ident]
     if ste and type(ste.identifier_type.contents) in [Struct, Number, Array]:
-        return ASTNode(Token(TokenType.VAR_DECL, ident), tree_type=ident_type)
+        decl_node = ASTNode(Token(TokenType.VAR_DECL, ident), tree_type=ident_type)
+
+        if GLOBAL_SCANNER.current_token.type == TokenType.ASSIGN:
+            from .expression import parse_binary_expression
+
+            match_token(TokenType.ASSIGN)
+
+            assign_value = parse_binary_expression()
+
+            ident_node = ASTNode(Token(TokenType.IDENTIFIER, ident))
+            assign_node = ASTNode(
+                Token(TokenType.ASSIGN), assign_value, None, ident_node
+            )
+            return ASTNode(Token(TokenType.AST_GLUE), decl_node, None, assign_node)
+
+        return decl_node
         # llvm_declare_global(ident, 0, num)
         # ste.latest_llvmvalue = llvm_declare_local(ident, 0, num)
     else:

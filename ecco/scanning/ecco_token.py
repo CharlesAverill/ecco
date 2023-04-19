@@ -50,6 +50,7 @@ class TokenType(Enum):
     PRINT = "print"
     WHILE = "while"
     RETURN = "return"
+    CONST = "const"
 
     # Miscellaneous
     SEMICOLON = ";"
@@ -71,7 +72,9 @@ class TokenType(Enum):
         return int(TokenType.PLUS) <= int(self) <= int(TokenType.SLASH)
 
     def is_type(self):
-        return int(TokenType.VOID) <= int(self) <= int(TokenType.STRUCT)
+        return self == TokenType.CONST or (
+            int(TokenType.VOID) <= int(self) <= int(TokenType.STRUCT)
+        )
 
     def is_literal(self):
         return (

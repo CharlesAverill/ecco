@@ -8,6 +8,7 @@ from ..utils import (
     LogLevel,
     log,
     EccoInternalTypeError,
+    EccoIdentifierError,
 )
 from .llvmstackentry import LLVMStackEntry
 from .llvmvalue import LLVMValue, LLVMValueType
@@ -309,14 +310,22 @@ def ast_to_llvm(
             )
 
         if root.right.type == TokenType.IDENTIFIER:
+            ste = SYMBOL_TABLE_STACK[str(root.right.token.value)]
+            if not ste:
+                raise EccoIdentifierError(
+                    f'Identifier "{root.right.token.value}" does not exist'
+                )
+            elif not ste.writeable and ste.initialized:
+                raise EccoIdentifierError("Tried to assign to a const value")
+
             if GLOBAL_SYMBOL_TABLE[str(root.right.token.value)]:
                 llvm_store_global(str(root.right.token.value), left_vr)
-                return left_vr
             else:
-                ste = SYMBOL_TABLE_STACK[str(root.right.token.value)]
-                if ste:
-                    llvm_store_local(ste.latest_llvmvalue, left_vr)
-                    return left_vr
+                llvm_store_local(ste.latest_llvmvalue, left_vr)
+
+            ste.initialized = True
+
+            return left_vr
         elif root.right.type == TokenType.DEREFERENCE:
             llvm_store_dereference(right_vr, left_vr)
             return left_vr
@@ -325,7 +334,7 @@ def ast_to_llvm(
             return left_vr
 
         raise EccoInternalTypeError(
-            "Identifier or Dereference token",
+            "Identifier, Dereference, Array or Field access",
             str(root.right.type),
             "translate.py:ast_to_llvm",
         )

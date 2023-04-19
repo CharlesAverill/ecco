@@ -148,6 +148,11 @@ def test_prototypes():
     _tester("test_prototypes", "30")
 
 
+def test_enum_const():
+    _tester("test_enum_const", """6
+""")
+
+
 def test_empty_prog():
     _tester("test_empty_prog", "")
 

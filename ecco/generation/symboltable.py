@@ -12,9 +12,17 @@ FNV_PRIME = 0x100000001B3
 
 
 class SymbolTableEntry:
-    def __init__(self, _identifier_name: str, t: Type, ll: Optional[LLVMValue] = None):
+    def __init__(
+        self,
+        _identifier_name: str,
+        t: Type,
+        ll: Optional[LLVMValue] = None,
+        writeable: bool = True,
+    ):
         self.identifier_name: str = _identifier_name
         self.identifier_type: Type = t
+        self.writeable: bool = writeable
+        self.initialized: bool = False
 
         self.next: Optional[SymbolTableEntry] = None
 
