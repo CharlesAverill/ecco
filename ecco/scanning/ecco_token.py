@@ -28,7 +28,7 @@ class TokenType(Enum):
     # Pointers
     DEREFERENCE = "%dereference"
     AMPERSAND = "&"
-    ACCESS = "."
+    FIELD_ACCESS = "."
 
     # Literals
     INTEGER_LITERAL = "%integer literal"

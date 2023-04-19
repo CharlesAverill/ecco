@@ -210,6 +210,7 @@ def ast_to_llvm(
         llvm_store_local,
         llvm_array_access,
         llvm_struct_declaration,
+        llvm_struct_access,
     )
 
     from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE, SYMBOL_TABLE_STACK
@@ -319,7 +320,7 @@ def ast_to_llvm(
         elif root.right.type == TokenType.DEREFERENCE:
             llvm_store_dereference(right_vr, left_vr)
             return left_vr
-        elif root.right.type == TokenType.ARRAY_ACCESS:
+        elif root.right.type in [TokenType.ARRAY_ACCESS, TokenType.FIELD_ACCESS]:
             llvm_store_local(right_vr, left_vr)
             return left_vr
 
@@ -363,6 +364,9 @@ def ast_to_llvm(
     # Array access
     elif root.type == TokenType.ARRAY_ACCESS:
         return llvm_array_access(str(root.token.value), left_vr)
+    # Struct field access
+    elif root.type == TokenType.FIELD_ACCESS:
+        return llvm_struct_access(str(root.token.values[0]), str(root.token.values[1]), str(root.token.values[2]))
     # Print statement
     elif root.type == TokenType.PRINT:
         llvm_print_int(left_vr)

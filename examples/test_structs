@@ -7,7 +7,7 @@ struct test {
 int main() {
     struct test structobj;
 
-    // structobj.c = 1; printint(structobj.c);
-    // structobj.i = 2; printint(structobj.i);
-    // structobj.l = 3; printint(structobj.l);
+    structobj.c = 1; printint(structobj.c);
+    structobj.i = 2; printint(structobj.i);
+    structobj.l = 3; printint(structobj.l);
 }
