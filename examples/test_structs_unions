@@ -4,10 +4,19 @@ struct test {
     long l;
 };
 
+union test2 {
+    char b;
+    int c;
+    long d;
+    int *ptr;
+};
+
 int main() {
     struct test structobj;
 
     structobj.c = 1; printint(structobj.c);
     structobj.i = 2; printint(structobj.i);
     structobj.l = 3; printint(structobj.l);
+
+    union test2 unionobj;
 }

@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Union, Optional
 
 from ..utils.ecco_logging import EccoInternalTypeError
-from .types import NumberType, Array, Struct
+from .types import NumberType, Array, Struct, EccoUnion
 
 
 class LLVMValueType(Enum):
@@ -31,6 +31,7 @@ class LLVMValue:
         just_loaded: str = "",
         array_type: Optional[Array] = None,
         struct_type: Optional[Struct] = None,
+        union_type: Optional[EccoUnion] = None,
     ):
         """Stores data about various kinds of LLVM Values
 
@@ -51,11 +52,14 @@ class LLVMValue:
         self.is_num: bool = False
         self.array: Optional[Array] = None
         self.struct: Optional[Struct] = None
+        self.union: Optional[EccoUnion] = None
         if array_type:
             self.array = array_type
             self.array_length: int = array_type.length
         elif struct_type:
             self.struct = struct_type
+        elif union_type:
+            self.union = union_type
         else:
             self.is_num = True
 
@@ -96,7 +100,9 @@ class LLVMValue:
         if self.is_num:
             return f"{self.number_type}{self.references}"
         elif self.struct:
-            return f"%{self.struct.name}{self.references}"
+            return self.struct.llvm_repr
+        elif self.union:
+            return self.union.llvm_repr
         else:
             # We are implicitly not supporting arrays of pointers by excluding
             # {something.references} here. We'll need to do a better unification of

@@ -5,7 +5,7 @@ from typing import Optional, Union, List, Tuple
 from .declaration import declaration_statement
 from .assignment import assignment_statement
 from ..generation.symboltable import SymbolTableEntry
-from ..generation.types import Number, NumberType, Struct, Function, Array
+from ..generation.types import Number, NumberType, Struct, Function, Array, EccoUnion
 
 
 def match_token(
@@ -37,7 +37,7 @@ def match_token(
     )
 
 
-def match_type() -> Union[Number, Struct]:
+def match_type() -> Union[Number, Struct, EccoUnion]:
     """Match a type token
 
     Returns:
@@ -46,17 +46,27 @@ def match_type() -> Union[Number, Struct]:
     from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
 
     ttype: TokenType
-    out: Union[Number, Function, Array, Struct]
+    out: Union[Number, Function, Array, Struct, EccoUnion]
     if GLOBAL_SCANNER.current_token.type == TokenType.STRUCT:
         match_token(TokenType.STRUCT)
         ttype = TokenType.STRUCT
 
-        struct_name = str(match_token(TokenType.IDENTIFIER)[0])
-        ste = SYMBOL_TABLE_STACK.GST[struct_name]
+        su_name = str(match_token(TokenType.IDENTIFIER)[0])
+        ste = SYMBOL_TABLE_STACK.GST[su_name]
         if ste:
             out = ste.identifier_type.contents
         else:
-            raise EccoIdentifierError(f"Lost track of {struct_name}!")
+            raise EccoIdentifierError(f"Lost track of {su_name}!")
+    elif GLOBAL_SCANNER.current_token.type == TokenType.UNION:
+        match_token(TokenType.UNION)
+        ttype = TokenType.UNION
+
+        su_name = str(match_token(TokenType.IDENTIFIER)[0])
+        ste = SYMBOL_TABLE_STACK.GST[su_name]
+        if ste:
+            out = ste.identifier_type.contents
+        else:
+            raise EccoIdentifierError(f"Lost track of {su_name}!")
     else:
         ttype = match_token(
             [
@@ -74,7 +84,12 @@ def match_type() -> Union[Number, Struct]:
 
     if ttype == TokenType.STRUCT:
         if not isinstance(out, Struct):
-            raise EccoIdentifierError(f"{struct_name} is not a structure")
+            raise EccoIdentifierError(f"{su_name} is not a structure")
+        out.pointer_depth = pointer_depth
+        return out
+    elif ttype == TokenType.UNION:
+        if not isinstance(out, EccoUnion):
+            raise EccoIdentifierError(f"{su_name} is not a union")
         out.pointer_depth = pointer_depth
         return out
     else:

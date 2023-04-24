@@ -39,6 +39,7 @@ class TokenType(Enum):
     CHAR = "char"
     LONG = "long"
     STRUCT = "struct"
+    UNION = "union"
 
     # Assignment
     ASSIGN = "="
@@ -74,7 +75,7 @@ class TokenType(Enum):
 
     def is_type(self):
         return self == TokenType.CONST or (
-            int(TokenType.VOID) <= int(self) <= int(TokenType.STRUCT)
+            int(TokenType.VOID) <= int(self) <= int(TokenType.UNION)
         )
 
     def is_literal(self):

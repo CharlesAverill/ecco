@@ -5,7 +5,7 @@ from ..utils import EccoFatalException, EccoInternalTypeError, EccoIdentifierErr
 from .llvmstackentry import LLVMStackEntry
 from .symboltable import SymbolTableEntry
 from .llvmvalue import LLVMValue, LLVMValueType
-from .types import NumberType, Function, Number, Array, Struct
+from .types import NumberType, Function, Number, Array, Struct, EccoUnion
 from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE, SYMBOL_TABLE_STACK
 from .translate import (
     LLVM_OUT_FILE,
@@ -435,7 +435,7 @@ def llvm_declare_global(
     )
 
 
-def llvm_declare_local(name: str, typ: Union[Number, Array, Struct]):
+def llvm_declare_local(name: str, typ: Union[Number, Array, Struct, EccoUnion]):
     """Declare a local variable
 
     Args:
@@ -450,6 +450,7 @@ def llvm_declare_local(name: str, typ: Union[Number, Array, Struct]):
         typ.pointer_depth,
         array_type=(typ if isinstance(typ, Array) else None),
         struct_type=(typ if isinstance(typ, Struct) else None),
+        union_type=(typ if isinstance(typ, EccoUnion) else None),
     )
 
     llvm_stack_allocation([LLVMStackEntry(out, typ.ntype.byte_width)])
@@ -939,6 +940,25 @@ def llvm_struct_declaration(struct_name: str) -> None:
         )
 
     LLVM_OUT_FILE.writelines(["}", NEWLINE, NEWLINE])
+
+
+def llvm_union_declaration(union_name: str) -> None:
+    entry: Optional[SymbolTableEntry] = SYMBOL_TABLE_STACK.GST[union_name]
+    if not (entry and isinstance(entry.identifier_type.contents, EccoUnion)):
+        raise EccoInternalTypeError(
+            "Union", str(type(entry)), "llvm.py:llvm_union_declaration"
+        )
+
+    max_ntype: Optional[NumberType] = None
+    for value in entry.identifier_type.contents.fields.values():
+        if not max_ntype or (int(value.ntype) > int(max_ntype)):
+            max_ntype = value.ntype
+    if not max_ntype:
+        return
+
+    LLVM_OUT_FILE.writelines(
+        [f"%union.{union_name} = type {{ ", str(max_ntype), " }", NEWLINE, NEWLINE]
+    )
 
 
 def llvm_return(return_value: LLVMValue, function_name: str) -> None:

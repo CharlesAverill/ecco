@@ -1,7 +1,7 @@
 from ..scanning import Token, TokenType
 from copy import deepcopy
 from typing import Optional, List, Union
-from ..generation.types import Number, NumberType, Array, Struct
+from ..generation.types import Number, NumberType, Array, Struct, EccoUnion
 
 
 class ASTNode:
@@ -11,7 +11,7 @@ class ASTNode:
         left: Optional["ASTNode"] = None,
         middle: Optional["ASTNode"] = None,
         right: Optional["ASTNode"] = None,
-        tree_type: Union[Array, Number, Struct] = Number(NumberType.INT, 0),
+        tree_type: Union[Array, Number, Struct, EccoUnion] = Number(NumberType.INT, 0),
         function_call_arguments: List["ASTNode"] = [],
     ):
         """A class for storing Abstract Syntax Tree data

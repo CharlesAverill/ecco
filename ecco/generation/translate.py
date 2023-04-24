@@ -212,6 +212,7 @@ def ast_to_llvm(
         llvm_array_access,
         llvm_struct_declaration,
         llvm_struct_access,
+        llvm_union_declaration,
     )
 
     from ..ecco import ARGS, GLOBAL_SYMBOL_TABLE, SYMBOL_TABLE_STACK
@@ -242,6 +243,9 @@ def ast_to_llvm(
         return LLVMValue(LLVMValueType.NONE)
     elif root.type == TokenType.STRUCT:
         llvm_struct_declaration(str(root.token.value))
+        return LLVMValue(LLVMValueType.NONE)
+    elif root.type == TokenType.UNION:
+        llvm_union_declaration(str(root.token.value))
         return LLVMValue(LLVMValueType.NONE)
 
     if root.left:

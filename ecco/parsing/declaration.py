@@ -1,7 +1,7 @@
 from ..scanning import TokenType, Token
 from ..utils import EccoInternalTypeError, EccoIdentifierError, EccoArrayError
 from ..generation.symboltable import SymbolTableEntry
-from ..generation.types import Type, Function, Number, Array, Struct
+from ..generation.types import Type, Function, Number, Array, Struct, EccoUnion
 from .ecco_ast import ASTNode
 from typing import Union, Optional, List
 from collections import OrderedDict
@@ -16,7 +16,7 @@ def function_declaration_statement() -> ASTNode:
     from .statement import match_token, parse_statements, match_type
     from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
 
-    return_type: Union[Number, Struct] = match_type()
+    return_type = match_type()
     identifier: Union[str, int] = match_token(TokenType.IDENTIFIER)[0]
     if not isinstance(identifier, str):
         raise EccoInternalTypeError(
@@ -46,8 +46,8 @@ def function_declaration_statement() -> ASTNode:
     match_token(TokenType.LEFT_PARENTHESIS)
 
     # Grab arguments
-    arguments: OrderedDict[str, Union[Array, Number, Struct]] = OrderedDict()
-    expected_arguments: Optional[List[Union[Array, Number, Struct]]] = None
+    arguments: OrderedDict[str, Union[Array, Number, Struct, EccoUnion]] = OrderedDict()
+    expected_arguments: Optional[List[Union[Array, Number, Struct, EccoUnion]]] = None
     if (
         expecting_definition
         and gst_entry
@@ -136,7 +136,7 @@ def declaration_statement() -> ASTNode:
         match_token(TokenType.CONST)
         const = True
 
-    vartype: Union[Number, Struct] = match_type()
+    vartype = match_type()
 
     ident = match_token(TokenType.IDENTIFIER)[0]
     if not isinstance(ident, str):
@@ -160,7 +160,7 @@ def declaration_statement() -> ASTNode:
 
         match_token(TokenType.RIGHT_BRACKET)
 
-    ident_type: Union[Array, Number, Struct] = arr_type if arr_type else vartype
+    ident_type = arr_type if arr_type else vartype
 
     # num.pointer_depth += 1
     SYMBOL_TABLE_STACK.LST[ident] = SymbolTableEntry(
@@ -168,7 +168,7 @@ def declaration_statement() -> ASTNode:
     )
 
     ste = SYMBOL_TABLE_STACK.LST[ident]
-    if ste and type(ste.identifier_type.contents) in [Struct, Number, Array]:
+    if ste and type(ste.identifier_type.contents) in [Struct, Number, Array, EccoUnion]:
         decl_node = ASTNode(Token(TokenType.VAR_DECL, ident), tree_type=ident_type)
 
         if GLOBAL_SCANNER.current_token.type == TokenType.ASSIGN:
@@ -200,7 +200,7 @@ def struct_declaration_statement() -> ASTNode:
 
     match_token(TokenType.LEFT_BRACE)
 
-    arguments: OrderedDict[str, Union[Number, Struct]] = OrderedDict()
+    arguments: OrderedDict[str, Union[Number, Struct, EccoUnion]] = OrderedDict()
     while GLOBAL_SCANNER.current_token.type != TokenType.RIGHT_BRACE:
         arg_type = match_type()
         arg_name = str(match_token(TokenType.IDENTIFIER)[0])
@@ -216,6 +216,33 @@ def struct_declaration_statement() -> ASTNode:
     match_token(TokenType.SEMICOLON)
 
     return ASTNode(Token(TokenType.STRUCT, identifier))
+
+
+def union_declaration_statement() -> ASTNode:
+    from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
+    from .statement import match_token, match_type
+
+    match_token(TokenType.UNION)
+    identifier = str(match_token(TokenType.IDENTIFIER)[0])
+
+    match_token(TokenType.LEFT_BRACE)
+
+    arguments: OrderedDict[str, Union[Number, Struct, EccoUnion]] = OrderedDict()
+    while GLOBAL_SCANNER.current_token.type != TokenType.RIGHT_BRACE:
+        arg_type = match_type()
+        arg_name = str(match_token(TokenType.IDENTIFIER)[0])
+        match_token(TokenType.SEMICOLON)
+
+        arguments[arg_name] = arg_type
+
+    SYMBOL_TABLE_STACK.GST[identifier] = SymbolTableEntry(
+        identifier, Type(TokenType.UNION, EccoUnion(identifier, arguments))
+    )
+
+    match_token(TokenType.RIGHT_BRACE)
+    match_token(TokenType.SEMICOLON)
+
+    return ASTNode(Token(TokenType.UNION, identifier))
 
 
 def enum_declaration_statement() -> ASTNode:
@@ -257,5 +284,7 @@ def global_declaration() -> ASTNode:
         return struct_declaration_statement()
     elif GLOBAL_SCANNER.current_token.type == TokenType.ENUM:
         return enum_declaration_statement()
+    elif GLOBAL_SCANNER.current_token.type == TokenType.UNION:
+        return union_declaration_statement()
 
     return function_declaration_statement()

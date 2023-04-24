@@ -102,7 +102,7 @@ class Number:
 class Array:
     def __init__(
         self,
-        numstruct: Union[Number, "Struct"],
+        numstruct: Union[Number, "Struct", "EccoUnion"],
         length: int,
         contents: List[float] = [],
         dimension: int = 1,
@@ -151,11 +151,11 @@ class Array:
 class Function:
     def __init__(
         self,
-        rtype: Union[Number, "Struct"],
-        arguments: OrderedDict[str, Union[Array, Number, "Struct"]],
+        rtype: Union[Number, "Struct", "EccoUnion"],
+        arguments: OrderedDict[str, Union[Array, Number, "Struct", "EccoUnion"]],
         is_prototype: bool = False,
     ):
-        self.return_type: Union[Number, "Struct"] = rtype
+        self.return_type = rtype
         self.arguments = arguments
         self.is_prototype = is_prototype
 
@@ -169,7 +169,10 @@ class Function:
 
 class Struct:
     def __init__(
-        self, name: str, fields: OrderedDict[str, Union[Number, "Struct"]], pd: int = 0
+        self,
+        name: str,
+        fields: OrderedDict[str, Union[Number, "Struct", "EccoUnion"]],
+        pd: int = 0,
     ):
         self.name = name
         self.fields = fields
@@ -192,12 +195,40 @@ class Struct:
         return f"%{self.name}{self.references}"
 
 
+class EccoUnion:
+    def __init__(
+        self,
+        name: str,
+        fields: OrderedDict[str, Union[Number, Struct, "EccoUnion"]],
+        pd: int = 0,
+    ):
+        self.name = name
+        self.fields = fields
+        self.pointer_depth = pd
+
+    @property
+    def tokentype(self) -> TokenType:
+        return TokenType.UNION
+
+    @property
+    def ntype(self) -> NumberType:
+        return NumberType.INT
+
+    @property
+    def references(self) -> str:
+        return "*" * self.pointer_depth
+
+    @property
+    def llvm_repr(self) -> str:
+        return f"%union.{self.name}{self.references}"
+
+
 class Type:
     def __init__(
-        self, ttype: TokenType, value: Union[Number, Function, Array, Struct]
+        self, ttype: TokenType, value: Union[Number, Function, Array, Struct, EccoUnion]
     ) -> None:
         self.ttype: TokenType = ttype
-        self.contents: Union[Number, Function, Array, Struct] = value
+        self.contents: Union[Number, Function, Array, Struct, EccoUnion] = value
 
     @property
     def type(self):
