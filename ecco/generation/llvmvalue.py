@@ -100,9 +100,9 @@ class LLVMValue:
         if self.is_num:
             return f"{self.number_type}{self.references}"
         elif self.struct:
-            return self.struct.llvm_repr
+            return f"%{self.struct.name}{self.references}"
         elif self.union:
-            return self.union.llvm_repr
+            return f"%union.{self.union.name}{self.references}"
         else:
             # We are implicitly not supporting arrays of pointers by excluding
             # {something.references} here. We'll need to do a better unification of
