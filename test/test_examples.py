@@ -150,7 +150,10 @@ def test_prototypes():
 
 def test_enum_const():
     _tester("test_enum_const", """6
-""")
+0
+1
+2
+3""")
 
 
 def test_empty_prog():
