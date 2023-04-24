@@ -205,7 +205,7 @@ def parse_statements() -> ASTNode:
     from ..ecco import GLOBAL_SCANNER
     from .expression import parse_binary_expression
 
-    root: ASTNode = ASTNode(Token(TokenType.UNKNOWN_TOKEN))
+    root: ASTNode = ASTNode(Token())
     left: Optional[ASTNode] = None
 
     match_token(TokenType.LEFT_BRACE)

@@ -1,5 +1,17 @@
+enum simple_enum {
+    dog,
+    cat,
+    log,
+    bat,
+};
+
 int main() {
     const int x = 6;
     // x = 5; // This would fail
     printint(x);
+
+    int i;
+    for(i = dog; i <= bat; i = i + cat) {
+        printint(i);
+    }
 }

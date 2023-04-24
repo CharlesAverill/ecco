@@ -474,8 +474,6 @@ def llvm_load_global(name: str) -> LLVMValue:
     Returns:
         LLVMValue: LLVMValue containing the register number the variable was loaded into
     """
-    out_vr: int = get_next_local_virtual_register()
-
     ste = SYMBOL_TABLE_STACK[name]
     if not ste:
         raise EccoFatalException("", "Tried to load nonexistent global variable")
@@ -485,8 +483,22 @@ def llvm_load_global(name: str) -> LLVMValue:
             str(type(ste.identifier_type.contents)),
             "llvm.py:llvm_load_global",
         )
+    elif ste.is_enum_val:
+        if not isinstance(ste.identifier_type.contents, Number):
+            raise EccoInternalTypeError(
+                "Number",
+                str(type(ste.identifier_type.contents)),
+                "llvm.py:llvm_load_global",
+            )
+        return LLVMValue(
+            LLVMValueType.CONSTANT,
+            ste.identifier_type.contents.value,
+            ste.identifier_type.contents.ntype,
+        )
     else:
         glob_ntype = ste.identifier_type.contents.ntype
+
+    out_vr: int = get_next_local_virtual_register()
 
     LLVM_OUT_FILE.writelines(
         [
@@ -524,6 +536,9 @@ def llvm_store_global(name: str, rvalue: LLVMValue):
             "",
             f"Undeclared identifier {name} was allowed to propagate to LLVM generation",
         )
+
+    if ste.is_enum_val:
+        raise EccoIdentifierError("Cannot assign to constant values")
 
     if not isinstance(ste.identifier_type.contents, Number):
         raise EccoFatalException("", "Tried to store data into non-number")

@@ -1,7 +1,8 @@
-from typing import Optional, List, Callable
+from typing import Optional, List, Callable, Dict, Set
 from abc import ABC, abstractmethod
 from .types import Type, NumberType, Number
-from ..utils import EccoInternalTypeError, EccoIdentifierError
+from ..scanning import TokenType
+from ..utils import EccoInternalTypeError, EccoIdentifierError, EccoFatalException
 from ..generation.llvmvalue import LLVMValue, LLVMValueType
 
 
@@ -18,10 +19,14 @@ class SymbolTableEntry:
         t: Type,
         ll: Optional[LLVMValue] = None,
         writeable: bool = True,
+        is_enum_val: bool = False,
     ):
         self.identifier_name: str = _identifier_name
         self.identifier_type: Type = t
         self.writeable: bool = writeable
+        self.is_enum_val: bool = is_enum_val
+        if is_enum_val and writeable:
+            raise EccoFatalException("Enum values should not be writeable")
         self.initialized: bool = False
 
         self.next: Optional[SymbolTableEntry] = None
@@ -54,6 +59,7 @@ class SymbolTableInterface(ABC):
         self,
         identifier: str,
         entry: Optional[SymbolTableEntry],
+        error_if_exists: bool = True,
     ) -> bool:
         pass
 
@@ -77,6 +83,29 @@ class SymbolTableInterface(ABC):
 class HashTableSymbolTable(SymbolTableInterface):
     def __init__(self, length: int = 512):
         self.data: List[Optional[SymbolTableEntry]] = [None] * length
+        self.enum_names: Set[str] = set()
+        self.enum_items: Dict[str, int] = {}
+
+    def declare_enum(self, enum_name: str, enum_items: Dict[str, int]):
+        if enum_name in self.enum_names:
+            raise EccoIdentifierError(f'Enumerator "{enum_name}" already declared!')
+        self.enum_items.update(enum_items)
+
+        for name, value in self.enum_items.items():
+            ste = self[name]
+            if ste:
+                if not isinstance(ste.identifier_type.contents, Number):
+                    raise EccoIdentifierError(f'Lost track of enum value "{name}"')
+                ste.identifier_type.contents.value = value
+            else:
+                ste = SymbolTableEntry(
+                    name,
+                    Type(TokenType.LONG, Number(NumberType.LONG, value)),
+                    writeable=False,
+                    is_enum_val=True,
+                )
+
+            self.update(name, ste, False)
 
     @property
     def length(self) -> int:
@@ -195,7 +224,12 @@ class FPSymbolTable(SymbolTableInterface):
     def length(self) -> int:
         return self._length
 
-    def update(self, identifier: str, entry: Optional[SymbolTableEntry]) -> bool:
+    def update(
+        self,
+        identifier: str,
+        entry: Optional[SymbolTableEntry],
+        error_if_exists: bool = True,
+    ) -> bool:
         symbol_already_exists: bool = self.get(identifier) is not None
 
         def new_symbol_table(s: str) -> Optional[SymbolTableEntry]:

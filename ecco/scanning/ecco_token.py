@@ -51,6 +51,7 @@ class TokenType(Enum):
     WHILE = "while"
     RETURN = "return"
     CONST = "const"
+    ENUM = "enum"
 
     # Miscellaneous
     SEMICOLON = ";"

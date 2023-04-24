@@ -115,7 +115,7 @@ def function_declaration_statement() -> ASTNode:
             )
 
         match_token(TokenType.SEMICOLON)
-        return ASTNode(Token(TokenType.UNKNOWN_TOKEN))
+        return ASTNode(Token())
 
     return ASTNode(
         Token(TokenType.FUNCTION, identifier), parse_statements(), None, None
@@ -218,10 +218,44 @@ def struct_declaration_statement() -> ASTNode:
     return ASTNode(Token(TokenType.STRUCT, identifier))
 
 
+def enum_declaration_statement() -> ASTNode:
+    from ..ecco import GLOBAL_SCANNER, SYMBOL_TABLE_STACK
+    from .statement import match_token
+
+    match_token(TokenType.ENUM)
+    enum_name = str(match_token(TokenType.IDENTIFIER)[0])
+
+    match_token(TokenType.LEFT_BRACE)
+
+    enum_value = 0
+    enum_items = {}
+    while GLOBAL_SCANNER.current_token.type != TokenType.RIGHT_BRACE:
+        enum_item_name = str(match_token(TokenType.IDENTIFIER)[0])
+        if enum_item_name in enum_items:
+            raise EccoIdentifierError(
+                f'Redefinition of existing enumerator "{enum_item_name}"'
+            )
+
+        if GLOBAL_SCANNER.current_token.type != TokenType.RIGHT_BRACE:
+            match_token(TokenType.COMMA)
+
+        enum_items[enum_item_name] = enum_value
+        enum_value += 1
+
+    match_token(TokenType.RIGHT_BRACE)
+    match_token(TokenType.SEMICOLON)
+
+    SYMBOL_TABLE_STACK.GST.declare_enum(enum_name, enum_items)
+
+    return ASTNode(Token())
+
+
 def global_declaration() -> ASTNode:
     from ..ecco import GLOBAL_SCANNER
 
     if GLOBAL_SCANNER.current_token.type == TokenType.STRUCT:
         return struct_declaration_statement()
+    elif GLOBAL_SCANNER.current_token.type == TokenType.ENUM:
+        return enum_declaration_statement()
 
     return function_declaration_statement()
