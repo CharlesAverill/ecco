@@ -1186,9 +1186,9 @@ def llvm_struct_access(ident_name: str, struct_name: str, field_name: str) -> LL
         raise EccoIdentifierError(f'Lost track of struct object "{ident_name}"')
     if not isinstance(ste.identifier_type.contents, Struct):
         raise EccoInternalTypeError(
-            "expression.py:postfix_operator",
             "Struct",
             str(type(ste.identifier_type.contents)),
+            "llvm.py:llvm_struct_access"
         )
     struct_obj = ste.identifier_type.contents
 
@@ -1203,6 +1203,7 @@ def llvm_struct_access(ident_name: str, struct_name: str, field_name: str) -> LL
         get_next_local_virtual_register(),
         nt=field.ntype if isinstance(field, Number) else NumberType.INT,
         struct_type=field if isinstance(field, Struct) else None,
+        union_type=field if isinstance(field, EccoUnion) else None,
     )
 
     LLVM_OUT_FILE.writelines(
@@ -1216,3 +1217,44 @@ def llvm_struct_access(ident_name: str, struct_name: str, field_name: str) -> LL
     out.pointer_depth += 1
 
     return out
+
+
+def llvm_union_access(ident_name: str, union_name: str, field_name: str) -> LLVMValue:
+    ste = SYMBOL_TABLE_STACK[ident_name]
+    if not ste:
+        raise EccoIdentifierError(f'Lost track of union object "{ident_name}"')
+    if not isinstance(ste.identifier_type.contents, EccoUnion):
+        raise EccoInternalTypeError(
+            "Union",
+            str(type(ste.identifier_type.contents)),
+            "llvm.py:llvm_unoin_access"
+        )
+    union_obj = ste.identifier_type.contents
+
+    if field_name not in union_obj.fields:
+        raise EccoFatalException(
+            "", "Unrecognized field access allowed to progress to code generation"
+        )
+
+    field = union_obj.fields[field_name]
+    if not isinstance(field, Number):
+        raise EccoIdentifierError("Union fields cannot have non-numeric types")
+
+    # if ste.latest_llvmvalue and ste.latest_llvmvalue.number_type == field.ntype:
+    #     bitcasted_union = ste.latest_llvmvalue
+    # else:
+    bitcasted_union = LLVMValue(
+        LLVMValueType.VIRTUAL_REGISTER,
+        get_next_local_virtual_register(),
+        nt=field.ntype,
+        pointer_depth=field.pointer_depth + 1,
+    )
+
+    LLVM_OUT_FILE.writelines([
+        TAB, 
+        f"%{bitcasted_union.register_name} = bitcast {ste.latest_llvmvalue.llvm_repr} to {bitcasted_union.llvm_type}",
+        NEWLINE
+    ])
+
+    # return llvm_ensure_registers_loaded([bitcasted_union], field.pointer_depth)[0]
+    return bitcasted_union

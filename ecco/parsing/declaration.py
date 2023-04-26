@@ -230,6 +230,9 @@ def union_declaration_statement() -> ASTNode:
     arguments: OrderedDict[str, Union[Number, Struct, EccoUnion]] = OrderedDict()
     while GLOBAL_SCANNER.current_token.type != TokenType.RIGHT_BRACE:
         arg_type = match_type()
+        if not isinstance(arg_type, Number):
+            raise EccoIdentifierError("Union fields cannot have non-numeric types")
+        
         arg_name = str(match_token(TokenType.IDENTIFIER)[0])
         match_token(TokenType.SEMICOLON)
 

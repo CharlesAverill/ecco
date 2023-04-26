@@ -10,7 +10,7 @@ from ..utils import (
 from .ecco_ast import ASTNode
 from typing import Optional
 from ..generation.symboltable import SymbolTableEntry
-from ..generation.types import Function, Struct
+from ..generation.types import Function, Struct, EccoUnion
 from .statement import match_token
 from .optimization import optimize_AST
 
@@ -83,7 +83,7 @@ def postfix_operator() -> ASTNode:
     elif GLOBAL_SCANNER.current_token.type == TokenType.LEFT_BRACKET:
         return array_access_expression(ident)
     elif GLOBAL_SCANNER.current_token.type == TokenType.FIELD_ACCESS:
-        return struct_access_expression(ident)
+        return struct_union_access_expression(ident)
     else:
         return ASTNode(
             Token(TokenType.IDENTIFIER, ident.identifier_name), None, None, None
@@ -115,6 +115,7 @@ def prefix_operator_passthrough() -> ASTNode:
             TokenType.IDENTIFIER,
             TokenType.DEREFERENCE,
             TokenType.AMPERSAND,
+            TokenType.FIELD_ACCESS
         ]:
             raise EccoSyntaxError(
                 "Dereference operators must be succeeded by dereference operators or variable names"
@@ -175,27 +176,27 @@ def array_access_expression(array_ste: SymbolTableEntry) -> ASTNode:
     return ASTNode(Token(TokenType.ARRAY_ACCESS, array_ste.identifier_name), child)
 
 
-def struct_access_expression(struct_ste: SymbolTableEntry) -> ASTNode:
-    if not isinstance(struct_ste.identifier_type.contents, Struct):
+def struct_union_access_expression(ste: SymbolTableEntry) -> ASTNode:
+    if not isinstance(ste.identifier_type.contents, (Struct, EccoUnion)):
         raise EccoInternalTypeError(
-            "expression.py:postfix_operator",
-            "Struct",
-            str(type(struct_ste.identifier_type.contents)),
+            "Struct or Union",
+            str(type(ste.identifier_type.contents)),
+            "expression.py:postfix_operator"
         )
-    struct_obj = struct_ste.identifier_type.contents
+    su_obj = ste.identifier_type.contents
 
     match_token(TokenType.FIELD_ACCESS)
 
     field_name: str = str(match_token(TokenType.IDENTIFIER)[0])
-    if field_name not in struct_obj.fields:
+    if field_name not in su_obj.fields:
         raise EccoIdentifierError(
-            f'Struct "{struct_obj.name}" does not have field "{field_name}"'
+            f'Struct "{su_obj.name}" does not have field "{field_name}"'
         )
 
     return ASTNode(
         Token(
             TokenType.FIELD_ACCESS,
-            [struct_ste.identifier_name, struct_obj.name, field_name],
+            [ste.identifier_name, su_obj.name, field_name],
         )
     )
 

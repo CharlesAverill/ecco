@@ -156,6 +156,13 @@ def test_enum_const():
 3""")
 
 
+def test_structs_unions():
+    _tester("test_structs_unions", """1
+2
+3
+4198416""")
+
+
 def test_empty_prog():
     _tester("test_empty_prog", "")
 
